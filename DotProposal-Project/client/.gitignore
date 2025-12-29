@@ -1,0 +1,75 @@
+# ---------------------------------
+# GENEL & BAĞIMLILIKLAR
+# ---------------------------------
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+package-lock.json # Eğer yarn kullanıyorsan bunu açabilirsin, ama npm kullanıyorsan kalsın.
+
+# ---------------------------------
+# GÜVENLİK & ENV (Environment)
+# Bu dosyaları ASLA commitleme!
+# ---------------------------------
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+*.env.*
+
+# ---------------------------------
+# FRONTEND (REACT / VITE / CRA)
+# ---------------------------------
+# Production build çıktıları
+dist/
+build/
+
+# Test kapsam raporları
+coverage/
+
+# Eslint cache
+.eslintcache
+
+# ---------------------------------
+# BACKEND (NODE.JS / EXPRESS)
+# ---------------------------------
+# Log dosyaları
+logs/
+*.log
+npm-debug.log
+
+# Çalışma zamanı verileri
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Yüklenen dosyalar (Eğer localde test ediyorsan)
+uploads/
+server/uploads/
+
+# ---------------------------------
+# IDE & EDİTÖR DOSYALARI
+# ---------------------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ---------------------------------
+# İŞLETİM SİSTEMİ (OS)
+# ---------------------------------
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ---------------------------------
+# TİPLER & DİĞERLERİ
+# ---------------------------------
+# TypeScript derleme çıktıları (Backend için)
+server/dist/
+server/build/

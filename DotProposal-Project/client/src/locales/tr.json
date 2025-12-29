@@ -1,0 +1,82 @@
+{
+  "nav": {
+    "home": "Ana Sayfa",
+    "createProposal": "Teklif Oluştur",
+    "login": "Giriş Yap",
+    "register": "Kayıt Ol",
+    "dashboard": "Panelim",
+    "profile": "Profilim",
+    "logout": "Çıkış Yap"
+  },
+  "home": {
+    "title": "Freelancerlar İçin Akıllı Teklif",
+    "subtitle": "Yapay zeka desteğiyle saniyeler içinde profesyonel teklifler hazırlayın.",
+    "startBtn": "Hemen Başla"
+  },
+  "auth": {
+    "fillAllFields": "Lütfen tüm alanları doldurun.",
+    "guest": "Ziyaretçi",
+    "email": "E-Posta Adresi",
+    "password": "Şifre",
+    "passwordConfirm": "Şifre Tekrar",
+    "noAccount": "Hesabın yok mu? Kayıt Ol",
+    "haveAccount": "Zaten hesabın var mı? Giriş Yap",
+    "forgotPassword": "Şifremi Unuttum",
+    "demoHint": "Demo Giriş: demo@dotproposal.com / 123456",
+    "createAccount": "Hesap Oluştur",
+    "fullName": "Ad Soyad"
+  },
+  "profile": {
+    "title": "Hesabım & Profilim",
+    "uploadSuccess": "\"{{fileName}}\" başarıyla yüklendi.",
+    "saveSuccess": "Profil bilgileri güncellendi.",
+    "memberType": "Freelancer Üyesi",
+    "jobTitle": "Ünvan (Örn: Full Stack Developer)",
+    "jobTitlePlaceholder": "Örn: Senior React Developer",
+    "saveChanges": "Değişiklikleri Kaydet",
+    "cvTitle": "Özgeçmiş (CV)",
+    "cvDesc": "Tekliflerinizi oluştururken yeteneklerinizin otomatik analiz edilmesi için güncel CV'nizi yükleyin.",
+    "currentFile": "Mevcut Dosya",
+    "uploadCV": "CV Yükle",
+    "updateCV": "CV Güncelle"
+  },
+  "dashboard": {
+    "title": "Teklif Panelim",
+    "welcome": "Hoş geldin",
+    "totalProposals": "Toplam {{count}} teklifiniz var.",
+    "noProposals": "Henüz oluşturulmuş bir teklifiniz yok.",
+    "createFirst": "İlk teklifini şimdi oluştur!",
+    "proposal": "Teklif",
+    "noDesc": "Açıklama yok",
+    "items": "İş Kalemi",
+    "details": "Detay Gör",
+    "delete": "Sil",
+    "deleteConfirm": "Bu teklifi silmek istediğinize emin misiniz?"
+  },
+  "wizard": {
+    "titleSuffix": "Sihirbazı",
+    "step1": "Proje Bilgileri",
+    "step2": "AI Analizi",
+    "step3": "Sonuç ve Teklif",
+    "clientName": "Müşteri Adı",
+    "projectDesc": "Proje Açıklaması",
+    "descPlaceholder": "Örn: Bir E-ticaret sitesi istiyorum, sepet modülü ve kredi kartı ödemesi olsun...",
+    "aiAnalyzing": "Yapay Zeka Projenizi Analiz Ediyor...",
+    "aiDetails": "İş kalemleri çıkarılıyor, fiyat hesaplanıyor.",
+    "analysisComplete": "Analiz Tamamlandı! Sonuçları görmek için ilerleyin.",
+    "proposalReady": "Teklifiniz Hazır!",
+    "previewDesc": "Aşağıda önizlemesini görebilirsiniz.",
+    "downloadPDF": "PDF İndir",
+    "saveFinish": "Kaydet ve Bitir",
+    "back": "Geri",
+    "next": "İleri",
+    "analyze": "Analiz Et"
+  },
+  "notFound": {
+    "title": "Sayfa Bulunamadı",
+    "desc": "Aradığınız sayfa mevcut değil veya taşınmış olabilir.",
+    "backHome": "Ana Sayfaya Dön"
+  }
+
+  
+}
