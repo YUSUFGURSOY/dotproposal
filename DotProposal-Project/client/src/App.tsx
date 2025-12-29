@@ -141,7 +141,7 @@ const AnimatedRoutes: React.FC = () => {
         {/* 👇 EKSİK OLAN ROTA EKLENDİ */}
         <Route path="/proposal/:id" element={<PageTransition><ProposalDetail /></PageTransition>} />
         
-        <Route path="*" element={<PageTransition><NotFoundPage /></PageTransition>} />
+        <Route path="/*" element={<PageTransition><NotFoundPage /></PageTransition>} />
       </Routes>
     </AnimatePresence>
   );
