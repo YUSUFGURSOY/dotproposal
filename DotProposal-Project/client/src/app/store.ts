@@ -1,13 +1,13 @@
 import { configureStore } from '@reduxjs/toolkit';
 import proposalReducer from '../features/proposal/proposalSlice';
 import authReducer from '../features/auth/authSlice';
-import themeReducer from '../features/theme/themeSlice'; // EKLENDİ
+import themeReducer from '../features/theme/themeSlice';
 
 export const store = configureStore({
   reducer: {
     proposal: proposalReducer,
     auth: authReducer,
-    theme: themeReducer, // EKLENDİ
+    theme: themeReducer, 
   },
 });
 

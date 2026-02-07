@@ -9,6 +9,20 @@ import userRoutes from './routes/userRoutes'; // Kullanıcı rotalarını import
 import proposalRoutes from './routes/proposalRoutes';
 
 dotenv.config();
+
+if (!process.env.MONGO_URI) {
+    console.error("❌ HATA: MONGO_URI .env dosyasında tanımlı değil!");
+    process.exit(1);
+}
+if (!process.env.JWT_SECRET) {
+    console.error("❌ HATA: JWT_SECRET .env dosyasında tanımlı değil!");
+    process.exit(1);
+}
+if (!process.env.GOOGLE_API_KEY) {
+    console.error("❌ HATA: GOOGLE_API_KEY .env dosyasında tanımlı değil!");
+    process.exit(1);
+}
+
 connectDB();
 
 const app: Express = express();

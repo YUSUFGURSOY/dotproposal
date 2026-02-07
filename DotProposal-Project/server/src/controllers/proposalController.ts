@@ -12,10 +12,13 @@ export const createProposal = async (req: AuthRequest, res: Response): Promise<v
   try {
     const pdf = require('pdf-parse-fork');
     
-    // API Anahtarın
-    const MY_API_KEY = "AIzaSyA5sKKBXgH6npJ_Krw1R6Dr96hWwWs7vOU";
-
-    const genAI = new GoogleGenerativeAI(MY_API_KEY);
+    
+    
+    // 🔒 GÜVENLİK GÜNCELLEMESİ: Anahtar artık process.env'den geliyor
+    if (!process.env.GOOGLE_API_KEY) {
+        throw new Error("Sunucu hatası: API Anahtarı yapılandırılmamış.");
+    }
+    const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     // Frontend'den gelen veriler
