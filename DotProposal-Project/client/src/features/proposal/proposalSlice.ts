@@ -1,4 +1,4 @@
-// src/features/proposal/proposalSlice.ts
+
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 
 // Geçmişteki bir teklifin veri yapısı
@@ -28,7 +28,7 @@ const initialState: ProposalState = {
   generatedItems: [],
   totalPrice: 0,
   loading: false,
-  history: [], // Başlangıçta boş
+  history: [], 
 };
 
 export const proposalSlice = createSlice({
@@ -50,7 +50,7 @@ export const proposalSlice = createSlice({
       state.totalPrice = action.payload.price;
     },
 
-    // YENİ: Mevcut teklifi geçmişe kaydet ve sihirbazı sıfırla
+    // Mevcut teklifi geçmişe kaydet ve sihirbazı sıfırlama
     saveProposalToHistory: (state) => {
       const newRecord: ProposalRecord = {
         id: Date.now().toString(), // Benzersiz ID
@@ -71,7 +71,7 @@ export const proposalSlice = createSlice({
       state.totalPrice = 0;
     },
 
-    // YENİ: Geçmişten teklif silme
+    // Geçmişten teklif silme
     deleteProposal: (state, action: PayloadAction<string>) => {
       state.history = state.history.filter(p => p.id !== action.payload);
     }

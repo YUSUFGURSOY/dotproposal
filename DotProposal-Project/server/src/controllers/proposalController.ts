@@ -22,7 +22,7 @@ export const createProposal = async (req: AuthRequest, res: Response): Promise<v
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     // Frontend'den gelen veriler
-    const { 
+    const {   
         jobTitle, jobDescription, companyName, tone, 
         selectedFeatures, hourlyRate, selectedSections 
     } = req.body;

@@ -1,7 +1,21 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // src/pages/DashboardPage.tsx
 import React, { useEffect, useState } from 'react';
-import { Container, Typography, Grid, Card, CardContent, CardActions, Button, Box, Chip, Divider, CircularProgress } from '@mui/material';
+import {
+  Container,
+  Typography,
+  Card,
+  CardContent,
+  CardActions,
+  Button,
+  Box,
+  Chip,
+  Divider,
+  CircularProgress,
+  Stack,
+  Paper,
+  Avatar,
+} from '@mui/material';
 import { useSelector } from 'react-redux';
 import { type RootState } from '../app/store';
 import { useNavigate } from 'react-router-dom';
@@ -11,10 +25,12 @@ import DescriptionIcon from '@mui/icons-material/Description';
 import EventIcon from '@mui/icons-material/Event';
 import BusinessIcon from '@mui/icons-material/Business';
 import VisibilityIcon from '@mui/icons-material/Visibility';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import axios from 'axios';
 import { useTranslation } from 'react-i18next';
+import { keyframes, alpha } from '@mui/system';
 
-// Backend'den gelen verinin tipi (MongoDB Modeline Uygun)
 interface Proposal {
   _id: string;
   jobTitle: string;
@@ -26,180 +42,278 @@ interface Proposal {
 }
 
 const DashboardPage: React.FC = () => {
-  // const { history } = useSelector((state: RootState) => state.proposal); // ESKİ REDUX KALDIRILDI
   const { user } = useSelector((state: RootState) => state.auth);
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
 
-  // ✅ YENİ: Verileri tutmak için State
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
-  // ✅ YENİ: Backend'den Verileri Çekme
+  // 🔹 Animations
+  const float = keyframes`
+    0% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+    100% { transform: translateY(0); }
+  `;
+
+  const gradientBg = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+
   useEffect(() => {
     const fetchProposals = async () => {
-        const token = localStorage.getItem('token');
-        if (!token) {
-            navigate('/login');
-            return;
-        }
+      const token = localStorage.getItem('token');
+      if (!token) {
+        navigate('/login');
+        return;
+      }
 
-        try {
-            const response = await axios.get('http://localhost:5001/api/proposals', {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            setProposals(response.data);
-        } catch (error) {
-            console.error("Teklifler çekilemedi:", error);
-        } finally {
-            setLoading(false);
-        }
+      try {
+        const response = await axios.get('http://localhost:5001/api/proposals', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setProposals(response.data);
+      } catch (error) {
+        console.error('Teklifler çekilemedi:', error);
+      } finally {
+        setLoading(false);
+      }
     };
 
     fetchProposals();
   }, [navigate]);
 
-  // ✅ GÜNCELLENDİ: Silme İşlemi
   const handleDelete = async (id: string) => {
     if (window.confirm(t('dashboard.deleteConfirm', 'Bu teklifi silmek istediğinize emin misiniz?'))) {
       try {
-        // Backend API Silme İsteği (İsteğe bağlı açılabilir)
-        // const token = localStorage.getItem('token');
-        // await axios.delete(`http://localhost:5001/api/proposals/${id}`, { headers: { Authorization: `Bearer ${token}` } });
-        
-        // Listeden sil (UI güncelleme)
-        setProposals(proposals.filter(p => p._id !== id));
+        setProposals(proposals.filter((p) => p._id !== id));
       } catch (error) {
-        console.error("Silme hatası:", error);
+        console.error('Silme hatası:', error);
       }
     }
   };
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 5, mb: 5 }}>
-      {/* BAŞLIK ALANI */}
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
-        <Box>
-          <Typography variant="h4" fontWeight="bold" gutterBottom>
-            {t('dashboard.title', 'Teklif Panelim')}
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            {t('dashboard.welcome', 'Hoş geldin')}, <strong>{user?.name}</strong>. 
-            {t('dashboard.totalProposals', 'Toplam {{count}} teklifiniz var.', { count: proposals.length })}
-          </Typography>
-        </Box>
-        <Button 
-          variant="contained" 
-          size="large" 
-          startIcon={<AddIcon />}
-          onClick={() => navigate('/wizard')}
-        >
-          {t('nav.createProposal', 'Yeni Teklif Oluştur')}
-        </Button>
-      </Box>
-
-      {/* LİSTELEME ALANI */}
-      {loading ? (
-        <Box display="flex" justifyContent="center" py={10}>
-             <CircularProgress />
-        </Box>
-      ) : proposals.length === 0 ? (
-        // Eğer hiç teklif yoksa bu görünür
-        <Box 
-          sx={{ 
-            textAlign: 'center', 
-            py: 10, 
-            bgcolor: 'background.paper', 
-            borderRadius: 4, 
-            border: '2px dashed',
-            borderColor: 'divider'
+    <Box
+      sx={{
+        background: gradientBg,
+        minHeight: '100vh',
+        py: 8,
+      }}
+    >
+      <Container maxWidth="lg">
+        {/* --- HEADER BANNER --- */}
+        <Paper
+          elevation={8}
+          sx={{
+            p: 5,
+            mb: 5,
+            borderRadius: 5,
+            background: alpha('#fff', 0.15),
+            backdropFilter: 'blur(20px)',
+            color: 'white',
+            position: 'relative',
+            overflow: 'hidden',
           }}
         >
-          <DescriptionIcon sx={{ fontSize: 60, color: 'text.disabled', mb: 2 }} />
-          <Typography variant="h6" color="text.secondary" gutterBottom>
-            {t('dashboard.noProposals', 'Henüz oluşturulmuş bir teklifiniz yok.')}
-          </Typography>
-          <Button variant="text" onClick={() => navigate('/wizard')}>
-            {t('dashboard.createFirst', 'İlk teklifini şimdi oluştur!')}
-          </Button>
+          <Box
+            sx={{
+              position: 'absolute',
+              top: -50,
+              right: -50,
+              width: 200,
+              height: 200,
+              borderRadius: '50%',
+              background: 'rgba(255,255,255,0.1)',
+              filter: 'blur(40px)',
+            }}
+          />
+
+          <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems="center" spacing={3}>
+            <Box sx={{ position: 'relative', zIndex: 1 }}>
+              <Typography variant="h3" fontWeight="900" gutterBottom>
+                {t('dashboard.title', 'Teklif Panelim')}
+              </Typography>
+              <Typography variant="h6" sx={{ opacity: 0.9 }}>
+                {t('dashboard.welcome', 'Hoş geldin')}, <strong>{user?.name}</strong>! 🚀
+              </Typography>
+              <Typography variant="body1" sx={{ opacity: 0.8, mt: 1 }}>
+                {t('dashboard.totalProposals', 'Toplam {{count}} teklifiniz var.', { count: proposals.length })}
+              </Typography>
+            </Box>
+
+            <Button
+              variant="contained"
+              size="large"
+              startIcon={<AddIcon />}
+              onClick={() => navigate('/wizard')}
+              sx={{
+                px: 5,
+                py: 2,
+                fontWeight: 'bold',
+                borderRadius: 3,
+                fontSize: '1.1rem',
+                background: 'linear-gradient(45deg,#ffd54f,#ff8a65)',
+                color: 'white',
+                boxShadow: '0 10px 25px rgba(255,213,79,0.4)',
+                '&:hover': {
+                  transform: 'translateY(-2px)',
+                  boxShadow: '0 15px 35px rgba(255,213,79,0.6)',
+                },
+              }}
+            >
+              {t('nav.createProposal', 'Yeni Teklif Oluştur')}
+            </Button>
+          </Stack>
+        </Paper>
+
+        {/* --- İSTATİSTİK KARTLARI --- */}
+        <Box sx={{ display: 'flex', gap: 3, mb: 5, flexWrap: 'wrap' }}>
+          {[
+            { label: 'Toplam Teklif', value: proposals.length, icon: <DescriptionIcon />, color: '#667eea' },
+            { label: 'Bu Ay', value: proposals.filter((p) => new Date(p.createdAt).getMonth() === new Date().getMonth()).length, icon: <TrendingUpIcon />, color: '#4ecdc4' },
+            { label: 'AI Destekli', value: proposals.length, icon: <AutoAwesomeIcon />, color: '#ff6b6b' },
+          ].map((stat, index) => (
+            <Paper
+              key={index}
+              elevation={4}
+              sx={{
+                flex: 1,
+                minWidth: 200,
+                p: 3,
+                borderRadius: 4,
+                background: alpha('#fff', 0.95),
+                backdropFilter: 'blur(10px)',
+                border: `1px solid ${alpha(stat.color, 0.2)}`,
+                transition: 'all 0.3s ease',
+                '&:hover': {
+                  transform: 'translateY(-5px)',
+                  boxShadow: `0 15px 35px ${alpha(stat.color, 0.3)}`,
+                },
+              }}
+            >
+              <Stack direction="row" alignItems="center" spacing={2}>
+                <Avatar sx={{ bgcolor: `${stat.color}20`, color: stat.color, width: 50, height: 50 }}>
+                  {stat.icon}
+                </Avatar>
+                <Box>
+                  <Typography variant="h4" fontWeight="bold" color="text.primary">
+                    {stat.value}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {stat.label}
+                  </Typography>
+                </Box>
+              </Stack>
+            </Paper>
+          ))}
         </Box>
-      ) : (
-        // Teklifler varsa kartlar görünür
-        <Grid container spacing={3}>
-          {proposals.map((item) => (
-            <Grid key={item._id} size={{ xs: 12, sm: 6, md: 4 }}>
-              <Card elevation={3} sx={{ height: '100%', display: 'flex', flexDirection: 'column', transition: '0.3s', '&:hover': { transform: 'translateY(-5px)', boxShadow: 6 } }}>
-                <CardContent sx={{ flexGrow: 1 }}>
-                  
-                  {/* Kart Üst Bilgi: Chip ve Tarih */}
-                  <Box display="flex" justifyContent="space-between" alignItems="start" mb={2}>
-                    <Chip label={item.tone || 'Standart'} color="primary" size="small" variant="outlined" />
-                    <Box display="flex" alignItems="center" gap={0.5} color="text.secondary">
-                        <EventIcon fontSize="small" />
-                        <Typography variant="caption">
-                            {/* "Invalid Date" ÇÖZÜMÜ: createdAt kullanıldı */}
-                            {item.createdAt ? new Date(item.createdAt).toLocaleDateString(i18n.language === 'en' ? 'en-US' : 'tr-TR') : '-'}
-                        </Typography>
-                    </Box>
-                  </Box>
-                  
-                  {/* Başlık (İş Adı) */}
-                  <Typography variant="h6" fontWeight="bold" noWrap title={item.jobTitle}>
+
+        {/* --- TEKLİF LİSTESİ --- */}
+        {loading ? (
+          <Box display="flex" justifyContent="center" py={10}>
+            <CircularProgress sx={{ color: 'white' }} size={60} />
+          </Box>
+        ) : proposals.length === 0 ? (
+          <Paper
+            elevation={6}
+            sx={{
+              textAlign: 'center',
+              py: 10,
+              px: 4,
+              borderRadius: 5,
+              background: alpha('#fff', 0.1),
+              backdropFilter: 'blur(10px)',
+              border: '2px dashed rgba(255,255,255,0.3)',
+              color: 'white',
+            }}
+          >
+            <DescriptionIcon sx={{ fontSize: 80, mb: 3, opacity: 0.5 }} />
+            <Typography variant="h5" fontWeight="bold" gutterBottom>
+              {t('dashboard.noProposals', 'Henüz oluşturulmuş bir teklifiniz yok.')}
+            </Typography>
+            <Button
+              variant="outlined"
+              size="large"
+              onClick={() => navigate('/wizard')}
+              sx={{ mt: 3, color: 'white', borderColor: 'white' }}
+            >
+              {t('dashboard.createFirst', 'İlk teklifini şimdi oluştur!')}
+            </Button>
+          </Paper>
+        ) : (
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' }, gap: 3 }}>
+            {proposals.map((item) => (
+              <Card
+                key={item._id}
+                elevation={6}
+                sx={{
+                  borderRadius: 4,
+                  background: alpha('#fff', 0.95),
+                  backdropFilter: 'blur(10px)',
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    transform: 'translateY(-8px)',
+                    boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
+                  },
+                }}
+              >
+                <CardContent>
+                  <Stack direction="row" justifyContent="space-between" alignItems="start" mb={2}>
+                    <Chip label={item.tone || 'Standart'} color="primary" size="small" />
+                    <Stack direction="row" alignItems="center" spacing={0.5} color="text.secondary">
+                      <EventIcon fontSize="small" />
+                      <Typography variant="caption">
+                        {item.createdAt ? new Date(item.createdAt).toLocaleDateString(i18n.language === 'en' ? 'en-US' : 'tr-TR') : '-'}
+                      </Typography>
+                    </Stack>
+                  </Stack>
+
+                  <Typography variant="h6" fontWeight="bold" noWrap title={item.jobTitle} mb={1}>
                     {item.jobTitle}
                   </Typography>
 
-                  {/* Şirket Adı */}
-                  <Box display="flex" alignItems="center" gap={1} mb={1} color="text.secondary">
+                  <Stack direction="row" alignItems="center" spacing={1} mb={2} color="text.secondary">
                     <BusinessIcon fontSize="small" />
                     <Typography variant="body2" noWrap>
-                        {item.companyName}
+                      {item.companyName}
                     </Typography>
-                  </Box>
-                  
-                  {/* Açıklama */}
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2, height: '40px', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                  </Stack>
+
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{
+                      mb: 2,
+                      height: '40px',
+                      overflow: 'hidden',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                    }}
+                  >
                     {item.jobDescription || t('dashboard.noDesc', 'Açıklama yok')}
                   </Typography>
 
-                  <Divider sx={{ my: 1 }} />
+                  <Divider sx={{ my: 2 }} />
 
-                  {/* Alt Bilgi */}
-                  <Box display="flex" justifyContent="space-between" alignItems="center" mt={2}>
-                    <Typography variant="body2" color="text.secondary">
-                      {item.selectedFeatures ? item.selectedFeatures.length : 0} {t('dashboard.items', 'Özellik')}
-                    </Typography>
-                    {/* Fiyat alanı yerine Ton bilgisi veya boş bırakılabilir */}
-                  </Box>
+                  <Typography variant="body2" color="text.secondary">
+                    {item.selectedFeatures ? item.selectedFeatures.length : 0} {t('dashboard.items', 'Özellik')}
+                  </Typography>
                 </CardContent>
-                
-                {/* BUTONLAR */}
-                <CardActions sx={{ justifyContent: 'space-between', px: 2, pb: 2 }}>
-                  {/* 🚨 DÜZELTME: disabled kaldırıldı, onClick eklendi */}
-                  <Button 
-                    size="small" 
-                    variant="contained" 
-                    color="primary"
-                    startIcon={<VisibilityIcon />}
-                    onClick={() => navigate(`/proposal/${item._id}`)} 
-                  >
-                    {t('dashboard.details', 'Detay Gör')}
-                  </Button>
 
-                  <Button 
-                    size="small" 
-                    color="error" 
-                    startIcon={<DeleteIcon />}
-                    onClick={() => handleDelete(item._id)}
-                  >
+                <CardActions sx={{ justifyContent: 'space-between', px: 2, pb: 2 }}>
+                  <Button size="small" variant="contained" startIcon={<VisibilityIcon />} onClick={() => navigate(`/proposal/${item._id}`)}>
+                    {t('dashboard.details', 'Detay')}
+                  </Button>
+                  <Button size="small" color="error" startIcon={<DeleteIcon />} onClick={() => handleDelete(item._id)}>
                     {t('dashboard.delete', 'Sil')}
                   </Button>
                 </CardActions>
               </Card>
-            </Grid>
-          ))}
-        </Grid>
-      )}
-    </Container>
+            ))}
+          </Box>
+        )}
+      </Container>
+    </Box>
   );
 };
 
