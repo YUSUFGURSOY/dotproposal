@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+
 // src/pages/DashboardPage.tsx
 import React, { useEffect, useState } from 'react';
 import {
@@ -29,7 +29,7 @@ import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import axios from 'axios';
 import { useTranslation } from 'react-i18next';
-import { keyframes, alpha } from '@mui/system';
+import {alpha } from '@mui/system';
 
 interface Proposal {
   _id: string;
@@ -49,12 +49,7 @@ const DashboardPage: React.FC = () => {
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
-  // 🔹 Animations
-  const float = keyframes`
-    0% { transform: translateY(0); }
-    50% { transform: translateY(-8px); }
-    100% { transform: translateY(0); }
-  `;
+ 
 
   const gradientBg = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
 

@@ -7,7 +7,7 @@ import {
   Button, 
   Grid,
   Paper, 
-  //useTheme,
+
   Stack,
   Avatar,
   Chip,
@@ -20,7 +20,7 @@ import DescriptionIcon from '@mui/icons-material/Description';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-//import AccessTimeIcon from '@mui/icons-material/AccessTime';
+
 import StarIcon from '@mui/icons-material/Star';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
@@ -29,7 +29,7 @@ import { keyframes } from '@mui/system';
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
-  //const theme = useTheme();
+  
 
   // Geliştirilmiş Animasyonlar
   const float = keyframes`
