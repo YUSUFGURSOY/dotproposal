@@ -62,13 +62,16 @@ const HomePage: React.FC = () => {
     50% { box-shadow: 0 0 30px rgba(102, 126, 234, 0.6), 0 0 60px rgba(102, 126, 234, 0.3); }
   `;
 
-  return (
-    <Box sx={{ 
-      background: 'linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%)',
-      minHeight: '100vh',
-      position: 'relative',
-      overflow: 'hidden'
-    }}>
+ return (
+  <Box sx={{ 
+    background: 'linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%)',
+    minHeight: '100vh',
+    position: 'relative',
+    width: '100%',        //Genişliği %100'e zorla
+    overflow: 'hidden',   // Zaten vardı ama kritik
+    overflowX: 'hidden',  //Yatay taşmayı kesinlikle engelle
+    maxWidth: '100vw'     //Ekran genişliğini asla geçme
+  }}>
       
       {/* Gelişmiş Arka Plan Efektleri */}
       <Box sx={{ 
@@ -93,36 +96,41 @@ const HomePage: React.FC = () => {
       }} />
 
       {/* Yüzen Geometrik Şekiller */}
+   
       <Box sx={{ 
         position: 'absolute',
         top: '15%',
         right: '8%',
-        width: 500,
-        height: 500,
+        width: { xs: 200, md: 500 },
+        height: { xs: 200, md: 500 },
         background: 'radial-gradient(circle, rgba(102, 126, 234, 0.12) 0%, transparent 70%)',
         borderRadius: '50%',
         filter: 'blur(60px)',
         animation: `${float} 10s ease-in-out infinite`
       }} />
       
+
       <Box sx={{ 
         position: 'absolute',
         bottom: '10%',
         left: '5%',
-        width: 350,
-        height: 350,
+  
+        width: { xs: 150, md: 350 }, 
+        height: { xs: 150, md: 350 },
         background: 'radial-gradient(circle, rgba(255, 107, 107, 0.1) 0%, transparent 70%)',
         borderRadius: '50%',
         filter: 'blur(50px)',
         animation: `${float} 7s ease-in-out infinite reverse`
       }} />
 
+     
       <Box sx={{ 
         position: 'absolute',
         top: '40%',
         left: '15%',
-        width: 200,
-        height: 200,
+       
+        width: { xs: 100, md: 200 },
+        height: { xs: 100, md: 200 },
         background: 'conic-gradient(from 0deg, rgba(78, 205, 196, 0.08), transparent)',
         borderRadius: '50%',
         filter: 'blur(40px)',
@@ -135,10 +143,10 @@ const HomePage: React.FC = () => {
         display: 'flex',
         alignItems: 'center',
         position: 'relative',
-        pt: { xs: 12, md: 0 }
+        pt: { xs: 8, md: 4 }
       }}>
-        <Container maxWidth="xl" sx={{ position: 'relative', zIndex: 1 }}>
-          <Grid container spacing={6} alignItems="center">
+        <Container maxWidth="xl" sx={{ position: 'relative', zIndex: 1 ,px: { xs: 2, md: 6, lg: 12 }}}>
+          <Grid container spacing={4} alignItems="center">
             
             {/* Sol Taraf - Hero Content */}
             <Grid size={{ xs: 12, lg: 6 }}>
@@ -170,7 +178,7 @@ const HomePage: React.FC = () => {
                 <Typography 
                   variant="h1" 
                   sx={{ 
-                    fontSize: { xs: '3.5rem', md: '5rem', lg: '6.5rem' },
+                    fontSize: { xs: '2.2rem', md: '4rem', lg: '4.5rem' },
                     fontWeight: 900,
                     lineHeight: 1.05,
                     mb: 4,
@@ -214,7 +222,7 @@ const HomePage: React.FC = () => {
                     mb: 5,
                     color: 'rgba(255, 255, 255, 0.85)',
                     fontWeight: 400,
-                    fontSize: { xs: '1.15rem', md: '1.4rem' },
+                    fontSize: { xs: '1rem', md: '1.2rem' },
                     lineHeight: 1.75,
                     maxWidth: '620px',
                     letterSpacing: '0.01em'
@@ -280,7 +288,7 @@ const HomePage: React.FC = () => {
                             backgroundClip: 'text',
                             WebkitBackgroundClip: 'text',
                             color: 'transparent',
-                            fontSize: { xs: '2rem', md: '2.5rem' }
+                            fontSize: { xs: '1.5rem', md: '2rem' }
                           }}
                         >
                           {stat.value}
@@ -406,7 +414,7 @@ const HomePage: React.FC = () => {
                   backdropFilter: 'blur(30px)',
                   border: '2px solid rgba(255,255,255,0.3)',
                   boxShadow: '0 30px 90px rgba(0,0,0,0.35), 0 0 0 1px rgba(102, 126, 234, 0.1)',
-                  transform: 'perspective(1200px) rotateY(-8deg) rotateX(4deg)',
+                  transform: 'perspective(1200px) rotateY(-4deg) rotateX(2deg)',
                   transition: 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
                   position: 'relative',
                   zIndex: 1,
@@ -601,7 +609,7 @@ const HomePage: React.FC = () => {
       </Box>
 
       {/* --- ÖZELLİKLER BÖLÜMÜ --- */}
-      <Container maxWidth="xl" sx={{ mt: -5, mb: 20, position: 'relative', zIndex: 2 }}>
+      <Container maxWidth="xl" sx={{ mt: { xs: 4, md: 8 }, mb: { xs: 10, md: 12 }, position: 'relative', zIndex: 2 ,px: { xs: 2, md: 6, lg: 12 }}}>
         <Grid container spacing={4}>
           {[
             { 
@@ -701,7 +709,7 @@ const HomePage: React.FC = () => {
       <Box sx={{ 
         background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%)',
         backdropFilter: 'blur(20px)',
-        py: 18,
+        py: { xs: 8, md: 12 },
         position: 'relative',
         borderTop: '1px solid rgba(255,255,255,0.08)',
         borderBottom: '1px solid rgba(255,255,255,0.08)'
@@ -857,7 +865,7 @@ const HomePage: React.FC = () => {
       </Box>
 
       {/* --- TESTIMONIALS --- */}
-      <Container maxWidth="lg" sx={{ py: 18 }}>
+      <Container maxWidth="lg" sx={{ py: { xs: 8, md: 12 } }}>
         <Box textAlign="center" mb={10}>
           <Chip 
             label="REFERANSLAR"
@@ -985,7 +993,7 @@ const HomePage: React.FC = () => {
       <Box sx={{ 
         background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%)',
         backdropFilter: 'blur(30px)',
-        py: 15,
+        py: { xs: 8, md: 10 },
         border: '2px solid rgba(255,255,255,0.1)',
         borderRadius: '80px 80px 0 0',
         position: 'relative',
