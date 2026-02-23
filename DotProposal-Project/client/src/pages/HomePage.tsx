@@ -7,7 +7,6 @@ import {
   Button, 
   Grid,
   Paper, 
-
   Stack,
   Avatar,
   Chip,
@@ -20,18 +19,19 @@ import DescriptionIcon from '@mui/icons-material/Description';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-
 import StarIcon from '@mui/icons-material/Star';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
 import BoltIcon from '@mui/icons-material/Bolt';
 import { keyframes } from '@mui/system';
 
+// SADECE FRAMER MOTION KULLANIYORUZ (HATA VERMEZ)
+import { motion } from 'framer-motion';
+
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
   
-
-  // Geliştirilmiş Animasyonlar
+  // Geliştirilmiş Animasyonlar (CSS Keyframes - Orijinal Kodun)
   const float = keyframes`
     0%, 100% { transform: translateY(0px) rotate(0deg); }
     50% { transform: translateY(-25px) rotate(180deg); }
@@ -67,12 +67,23 @@ const HomePage: React.FC = () => {
     background: 'linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%)',
     minHeight: '100vh',
     position: 'relative',
-    width: '100%',        //Genişliği %100'e zorla
-    overflow: 'hidden',   // Zaten vardı ama kritik
-    overflowX: 'hidden',  //Yatay taşmayı kesinlikle engelle
-    maxWidth: '100vw'     //Ekran genişliğini asla geçme
+    width: '100%',
+    overflow: 'hidden',
+    overflowX: 'hidden',
+    maxWidth: '100vw'
   }}>
       
+      {/* 1. ÖZELLİK: NOISE TEXTURE (KODLA YAPILAN GÜRÜLTÜ EFEKTİ - HATA VERMEZ) */}
+      <Box sx={{
+        position: 'absolute',
+        inset: 0,
+        opacity: 0.035,
+        mixBlendMode: 'overlay',
+        pointerEvents: 'none',
+        zIndex: 1,
+        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+      }} />
+
       {/* Gelişmiş Arka Plan Efektleri */}
       <Box sx={{ 
         position: 'absolute',
@@ -95,8 +106,7 @@ const HomePage: React.FC = () => {
         backgroundPosition: '0 0'
       }} />
 
-      {/* Yüzen Geometrik Şekiller */}
-   
+      {/* Yüzen Geometrik Şekiller - Orijinal Kod */}
       <Box sx={{ 
         position: 'absolute',
         top: '15%',
@@ -109,12 +119,10 @@ const HomePage: React.FC = () => {
         animation: `${float} 10s ease-in-out infinite`
       }} />
       
-
       <Box sx={{ 
         position: 'absolute',
         bottom: '10%',
         left: '5%',
-  
         width: { xs: 150, md: 350 }, 
         height: { xs: 150, md: 350 },
         background: 'radial-gradient(circle, rgba(255, 107, 107, 0.1) 0%, transparent 70%)',
@@ -123,12 +131,10 @@ const HomePage: React.FC = () => {
         animation: `${float} 7s ease-in-out infinite reverse`
       }} />
 
-     
       <Box sx={{ 
         position: 'absolute',
         top: '40%',
         left: '15%',
-       
         width: { xs: 100, md: 200 },
         height: { xs: 100, md: 200 },
         background: 'conic-gradient(from 0deg, rgba(78, 205, 196, 0.08), transparent)',
@@ -152,70 +158,80 @@ const HomePage: React.FC = () => {
             <Grid size={{ xs: 12, lg: 6 }}>
               <Box sx={{ animation: `${slideIn} 1s ease-out` }}>
                 
-                {/* Geliştirilmiş Status Badge */}
-                <Box sx={{ mb: 4 }}>
-                  <Chip 
-                    icon={<RocketLaunchIcon sx={{ color: 'white', animation: `${pulse} 2s infinite` }} />}
-                    label="Türkiye'nin #1 AI Teklif Platformu"
-                    sx={{ 
-                      px: 3,
-                      py: 2.5,
-                      height: 'auto',
-                      background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.25) 0%, rgba(118, 75, 162, 0.25) 100%)',
-                      backdropFilter: 'blur(20px)',
-                      border: '1.5px solid rgba(255, 255, 255, 0.15)',
-                      borderRadius: '50px',
-                      color: 'white',
-                      fontWeight: 700,
-                      fontSize: '0.95rem',
-                      boxShadow: '0 8px 32px rgba(102, 126, 234, 0.25)',
-                      '& .MuiChip-label': { px: 1.5 }
-                    }}
-                  />
-                </Box>
+                {/* Status Badge */}
+                <Box sx={{ 
+  mb: 4, 
+  display: { xs: 'none', md: 'flex' }, // Mobilde gizle (none), masaüstünde göster (flex)
+  justifyContent: 'flex-start' 
+}}>
+  <Chip 
+    icon={<RocketLaunchIcon sx={{ color: 'white', animation: `${pulse} 2s infinite` }} />}
+    label="Türkiye'nin #1 AI Teklif Platformu"
+    sx={{ 
+      px: 3,
+      py: 2.5,
+      height: 'auto',
+      background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.25) 0%, rgba(118, 75, 162, 0.25) 100%)',
+      backdropFilter: 'blur(20px)',
+      border: '1.5px solid rgba(255, 255, 255, 0.15)',
+      borderRadius: '50px',
+      color: 'white',
+      fontWeight: 700,
+      fontSize: '0.95rem',
+      boxShadow: '0 8px 32px rgba(102, 126, 234, 0.25)',
+      '& .MuiChip-label': { px: 1.5 }
+    }}
+  />
+</Box>
 
-                {/* Ultra Modern Heading */}
-                <Typography 
-                  variant="h1" 
-                  sx={{ 
-                    fontSize: { xs: '2.2rem', md: '4rem', lg: '4.5rem' },
-                    fontWeight: 900,
-                    lineHeight: 1.05,
-                    mb: 4,
-                    background: 'linear-gradient(135deg, #ffffff 0%, #e8eaf6 50%, #c5cae9 100%)',
-                    backgroundClip: 'text',
-                    WebkitBackgroundClip: 'text',
-                    color: 'transparent',
-                    textShadow: '0 0 80px rgba(102, 126, 234, 0.5)',
-                    letterSpacing: '-0.02em'
-                  }}
-                >
-                  Teklifleri
-                  <br />
-                  <Box component="span" sx={{ 
-                    display: 'inline-block',
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
-                    backgroundClip: 'text',
-                    WebkitBackgroundClip: 'text',
-                    color: 'transparent',
-                    position: 'relative',
-                    '&::after': {
-                      content: '""',
-                      position: 'absolute',
-                      bottom: -10,
-                      left: 0,
-                      right: 0,
-                      height: '6px',
-                      background: 'linear-gradient(90deg, #667eea, #764ba2)',
-                      borderRadius: '3px',
-                      animation: `${shimmer} 3s linear infinite`
-                    }
-                  }}>
-                    Saniyede Üret
-                  </Box>
-                </Typography>
+                {/* Heading */}
+            <Typography 
+  variant="h1" 
+  sx={{ 
+    // xs: Telefon, sm: Tablet, md: Masaüstü
+    // sm (600px+) değerini 4rem yaparak tableti de masaüstü görkemine yaklaştırdık
+    fontSize: { xs: '3.2rem', sm: '4rem', md: '4.5rem', lg: '5rem' },
+    fontWeight: 900,
+    // Satır aralığını her ekranda sıkı tutarak modern görünümü koruduk
+    lineHeight: { xs: 1.1, sm: 1.05 },
+    // Tablet ve üstünde daha fazla boşluk bıraktık
+    mb: { xs: 3, sm: 5, md: 6 },
+    background: 'linear-gradient(135deg, #ffffff 0%, #e8eaf6 50%, #c5cae9 100%)',
+    backgroundClip: 'text',
+    WebkitBackgroundClip: 'text',
+    color: 'transparent',
+    textShadow: '0 0 80px rgba(102, 126, 234, 0.5)',
+    letterSpacing: '-0.02em',
+    textAlign: 'left' // Sola yaslı duruşu sabitledik
+  }}
+>
+  Teklifleri
+  <br />
+  <Box component="span" sx={{ 
+    display: 'inline-block',
+    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
+    backgroundClip: 'text',
+    WebkitBackgroundClip: 'text',
+    color: 'transparent',
+    position: 'relative',
+    '&::after': {
+      content: '""',
+      position: 'absolute',
+      // Alt çizgi kalınlığını ve konumunu tablet için de büyüttük
+      bottom: { xs: -5, sm: -8, md: -12 }, 
+      left: 0,
+      right: 0,
+      height: { xs: '4px', sm: '6px', md: '8px' }, 
+      background: 'linear-gradient(90deg, #667eea, #764ba2)',
+      borderRadius: '3px',
+      animation: `${shimmer} 3s linear infinite`
+    }
+  }}>
+    Saniyede Üret
+  </Box>
+</Typography>
 
-                {/* Geliştirilmiş Subtitle */}
+                {/* Subtitle */}
                 <Typography 
                   variant="h6" 
                   sx={{ 
@@ -242,7 +258,7 @@ const HomePage: React.FC = () => {
                   oluşturun. Müşterilerinizi büyüleyin, işinizi büyütün.
                 </Typography>
 
-                {/* Premium Stats Row */}
+                {/* Stats Row */}
                 <Stack 
                   direction={{ xs: 'column', sm: 'row' }} 
                   spacing={4} 
@@ -301,7 +317,7 @@ const HomePage: React.FC = () => {
                   ))}
                 </Stack>
 
-                {/* Premium CTA Buttons */}
+                {/* CTA Buttons */}
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3}>
                   <Button
                     variant="contained"
@@ -343,7 +359,7 @@ const HomePage: React.FC = () => {
                       }
                     }}
                   >
-                    Hemen Başla - Ücretsiz
+                    Hemen Başla
                   </Button>
                   
                   <Button
@@ -389,14 +405,12 @@ const HomePage: React.FC = () => {
               </Box>
             </Grid>
 
-            {/* Sağ Taraf - Ultra Modern Dashboard Preview */}
+            {/* Sağ Taraf - Dashboard Preview */}
             <Grid size={{ xs: 12, lg: 6 }}>
               <Box sx={{ 
                 position: 'relative',
                 display: { xs: 'none', lg: 'block' }
               }}>
-                
-                {/* Glow Effect */}
                 <Box sx={{
                   position: 'absolute',
                   inset: -50,
@@ -406,7 +420,6 @@ const HomePage: React.FC = () => {
                   zIndex: 0
                 }} />
 
-                {/* Main Dashboard Card */}
                 <Paper sx={{
                   p: 5,
                   borderRadius: 8,
@@ -423,8 +436,7 @@ const HomePage: React.FC = () => {
                     boxShadow: '0 40px 100px rgba(0,0,0,0.4), 0 0 0 2px rgba(102, 126, 234, 0.2)'
                   }
                 }}>
-                  
-                  {/* Premium Header */}
+                  {/* Dashboard içeriği (Orijinal ile aynı) */}
                   <Stack direction="row" justifyContent="space-between" alignItems="center" mb={4}>
                     <Stack direction="row" spacing={1.5} alignItems="center">
                       <Box sx={{
@@ -463,7 +475,6 @@ const HomePage: React.FC = () => {
                     />
                   </Stack>
 
-                  {/* Modern Progress Bar */}
                   <Box sx={{ mb: 5 }}>
                     <Stack direction="row" justifyContent="space-between" mb={2}>
                       <Typography variant="body2" fontWeight={600} color="text.secondary">
@@ -509,9 +520,7 @@ const HomePage: React.FC = () => {
                     </Box>
                   </Box>
 
-                  {/* Premium Content Preview */}
                   <Stack spacing={3}>
-                    {/* Title Skeleton */}
                     <Box>
                       <Box sx={{ 
                         width: '70%', 
@@ -532,7 +541,6 @@ const HomePage: React.FC = () => {
                       }} />
                     </Box>
                     
-                    {/* Content Lines */}
                     <Stack spacing={1.5}>
                       {[95, 88, 92, 78].map((width, i) => (
                         <Box key={i} sx={{ 
@@ -547,7 +555,6 @@ const HomePage: React.FC = () => {
                       ))}
                     </Stack>
 
-                    {/* Premium Feature Cards */}
                     <Grid container spacing={2} sx={{ mt: 2 }}>
                       {[
                         { icon: <SpeedIcon />, title: 'Hızlı', color: '#667eea' },
@@ -580,7 +587,6 @@ const HomePage: React.FC = () => {
                   </Stack>
                 </Paper>
 
-                {/* Floating AI Badge */}
                 <Box sx={{ 
                   position: 'absolute', 
                   top: -30, 
@@ -642,64 +648,70 @@ const HomePage: React.FC = () => {
             }
           ].map((item, index) => (
             <Grid size={{ xs: 12, sm: 6, lg: 3 }} key={index}>
-              <Paper 
-                elevation={0}
-                sx={{ 
-                  p: 4.5, 
-                  height: '100%',
-                  borderRadius: 7,
-                  background: `linear-gradient(135deg, ${alpha(item.color, 0.05)} 0%, rgba(255,255,255,0.02) 100%)`,
-                  border: `2px solid ${alpha(item.color, 0.15)}`,
-                  backdropFilter: 'blur(20px)',
-                  transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
-                  cursor: 'pointer',
-                  position: 'relative',
-                  overflow: 'hidden',
-                  '&::before': {
-                    content: '""',
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    height: '5px',
-                    background: item.gradient,
-                    borderRadius: '7px 7px 0 0'
-                  },
-                  '&:hover': { 
-                    transform: 'translateY(-20px) scale(1.03)',
-                    boxShadow: `0 30px 60px ${alpha(item.color, 0.35)}`,
-                    background: `linear-gradient(135deg, ${alpha(item.color, 0.15)} 0%, ${alpha(item.color, 0.05)} 100%)`,
-                    border: `2px solid ${alpha(item.color, 0.4)}`
-                  }
+              
+              {/* 2. ve 3. ÖZELLİK: SCROLL REVEAL ve 3D HOVER (FRAMER MOTION İLE - HATA VERMEZ) */}
+              <motion.div
+                initial={{ opacity: 0, y: 50 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-50px" }}
+                transition={{ duration: 0.6, delay: index * 0.1 }}
+                whileHover={{ 
+                  y: -10, 
+                  scale: 1.02,
+                  rotateX: 5,
+                  rotateY: 5,
+                  transition: { type: "spring", stiffness: 300 }
                 }}
+                style={{ height: '100%', transformStyle: "preserve-3d" }}
               >
-                <Box sx={{ 
-                  background: item.gradient,
-                  width: 72,
-                  height: 72,
-                  borderRadius: 5,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  mb: 3,
-                  color: 'white',
-                  boxShadow: `0 10px 30px ${alpha(item.color, 0.35)}`,
-                  transition: 'transform 0.3s ease',
-                  '.MuiPaper-root:hover &': {
-                    transform: 'scale(1.1) rotate(5deg)'
-                  }
-                }}>
-                  {item.icon}
-                </Box>
-                
-                <Typography variant="h6" fontWeight="800" gutterBottom sx={{ color: 'white', mb: 2 }}>
-                  {item.title}
-                </Typography>
-                
-                <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.75)', lineHeight: 1.8, fontSize: '0.95rem' }}>
-                  {item.desc}
-                </Typography>
-              </Paper>
+                <Paper 
+                  elevation={0}
+                  sx={{ 
+                    p: 4.5, 
+                    height: '100%',
+                    borderRadius: 7,
+                    background: `linear-gradient(135deg, ${alpha(item.color, 0.05)} 0%, rgba(255,255,255,0.02) 100%)`,
+                    border: `2px solid ${alpha(item.color, 0.15)}`,
+                    backdropFilter: 'blur(20px)',
+                    cursor: 'pointer',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    '&::before': {
+                      content: '""',
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      height: '5px',
+                      background: item.gradient,
+                      borderRadius: '7px 7px 0 0'
+                    }
+                  }}
+                >
+                  <Box sx={{ 
+                    background: item.gradient,
+                    width: 72,
+                    height: 72,
+                    borderRadius: 5,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    mb: 3,
+                    color: 'white',
+                    boxShadow: `0 10px 30px ${alpha(item.color, 0.35)}`
+                  }}>
+                    {item.icon}
+                  </Box>
+                  
+                  <Typography variant="h6" fontWeight="800" gutterBottom sx={{ color: 'white', mb: 2 }}>
+                    {item.title}
+                  </Typography>
+                  
+                  <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.75)', lineHeight: 1.8, fontSize: '0.95rem' }}>
+                    {item.desc}
+                  </Typography>
+                </Paper>
+              </motion.div>
             </Grid>
           ))}
         </Grid>
@@ -737,7 +749,6 @@ const HomePage: React.FC = () => {
               background: 'linear-gradient(135deg, #ffffff, #e8eaf6)',
               backgroundClip: 'text',
               WebkitBackgroundClip: 'text',
-              //color: 'transparent'
             }}>
               3 Adımda Başarı
             </Typography>
@@ -752,6 +763,7 @@ const HomePage: React.FC = () => {
                 step: "01",
                 title: "Bilgileri Gir", 
                 desc: "Müşteri adı, proje detayları ve tercihlerinizi girin. AI asistanımız size rehberlik eder.",
+                // 4. ÖZELLİK: HAREKETLİ İKON YERİNE FRAMER MOTION İLE CANLANAN MUI İKONLARI (HATASIZ)
                 icon: <DescriptionIcon sx={{ fontSize: 50 }} />,
                 color: '#667eea',
                 gradient: 'linear-gradient(135deg, #667eea, #764ba2)'
@@ -774,90 +786,96 @@ const HomePage: React.FC = () => {
               }
             ].map((item, index) => (
               <Grid size={{ xs: 12, md: 4 }} key={index}>
-                <Box sx={{ 
-                  position: 'relative',
-                  textAlign: 'center'
-                }}>
-                  
-                  {/* Step Number Background */}
-                  <Typography variant="h1" sx={{ 
-                    fontSize: '8rem',
-                    fontWeight: 900,
-                    background: 'linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01))',
-                    backgroundClip: 'text',
-                    WebkitBackgroundClip: 'text',
-                    color: 'transparent',
-                    lineHeight: 0.8,
-                    mb: -6,
+                {/* SCROLL REVEAL EKLEMESİ */}
+                <motion.div
+                  initial={{ opacity: 0, y: 50 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.6, delay: index * 0.2 }}
+                >
+                  <Box sx={{ 
                     position: 'relative',
-                    zIndex: 0
+                    textAlign: 'center'
                   }}>
-                    {item.step}
-                  </Typography>
-                  
-                  {/* Icon Container */}
-                  <Box sx={{
-                    width: 110,
-                    height: 110,
-                    borderRadius: '30px',
-                    background: item.gradient,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    margin: '0 auto',
-                    mb: 4,
-                    color: 'white',
-                    boxShadow: `0 20px 50px ${alpha(item.color, 0.5)}`,
-                    position: 'relative',
-                    zIndex: 1,
-                    border: '4px solid rgba(255,255,255,0.15)',
-                    transition: 'all 0.4s ease',
-                    '&:hover': {
-                      transform: 'translateY(-10px) scale(1.1)',
-                      boxShadow: `0 30px 70px ${alpha(item.color, 0.6)}`,
-                      animation: `${pulse} 1s ease-in-out infinite`
-                    }
-                  }}>
-                    {item.icon}
-                  </Box>
-                  
-                  <Typography variant="h4" fontWeight="900" sx={{ color: 'white', mb: 2 }}>
-                    {item.title}
-                  </Typography>
-                  
-                  <Typography variant="body1" sx={{ 
-                    color: 'rgba(255,255,255,0.75)', 
-                    lineHeight: 1.8,
-                    px: 2,
-                    fontSize: '1.05rem'
-                  }}>
-                    {item.desc}
-                  </Typography>
+                    
+                    <Typography variant="h1" sx={{ 
+                      fontSize: '8rem',
+                      fontWeight: 900,
+                      background: 'linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01))',
+                      backgroundClip: 'text',
+                      WebkitBackgroundClip: 'text',
+                      color: 'transparent',
+                      lineHeight: 0.8,
+                      mb: -6,
+                      position: 'relative',
+                      zIndex: 0
+                    }}>
+                      {item.step}
+                    </Typography>
+                    
+                    {/* CANLI İKON EFEKTİ (HOVER YAPINCA OYNAR) */}
+                    <motion.div
+                      whileHover={{ scale: 1.2, rotate: 10 }}
+                      style={{ display: 'inline-block' }}
+                    >
+                      <Box sx={{
+                        width: 110,
+                        height: 110,
+                        borderRadius: '30px',
+                        background: item.gradient,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        margin: '0 auto',
+                        mb: 4,
+                        color: 'white',
+                        boxShadow: `0 20px 50px ${alpha(item.color, 0.5)}`,
+                        position: 'relative',
+                        zIndex: 1,
+                        border: '4px solid rgba(255,255,255,0.15)',
+                        transition: 'all 0.4s ease',
+                      }}>
+                        {item.icon}
+                      </Box>
+                    </motion.div>
+                    
+                    <Typography variant="h4" fontWeight="900" sx={{ color: 'white', mb: 2 }}>
+                      {item.title}
+                    </Typography>
+                    
+                    <Typography variant="body1" sx={{ 
+                      color: 'rgba(255,255,255,0.75)', 
+                      lineHeight: 1.8,
+                      px: 2,
+                      fontSize: '1.05rem'
+                    }}>
+                      {item.desc}
+                    </Typography>
 
-                  {/* Connection Line */}
-                  {index < 2 && (
-                    <Box sx={{
-                      display: { xs: 'none', md: 'block' },
-                      position: 'absolute',
-                      top: '30%',
-                      right: '-50%',
-                      width: '100px',
-                      height: '3px',
-                      background: `linear-gradient(90deg, ${item.color}60, transparent)`,
-                      '&::after': {
-                        content: '""',
+                    {index < 2 && (
+                      <Box sx={{
+                        display: { xs: 'none', md: 'block' },
                         position: 'absolute',
-                        right: -8,
-                        top: -4,
-                        width: 0,
-                        height: 0,
-                        borderLeft: `8px solid ${item.color}60`,
-                        borderTop: '5px solid transparent',
-                        borderBottom: '5px solid transparent'
-                      }
-                    }} />
-                  )}
-                </Box>
+                        top: '30%',
+                        right: '-50%',
+                        width: '100px',
+                        height: '3px',
+                        background: `linear-gradient(90deg, ${item.color}60, transparent)`,
+                        '&::after': {
+                          content: '""',
+                          position: 'absolute',
+                          right: -8,
+                          top: -4,
+                          width: 0,
+                          height: 0,
+                          borderLeft: `8px solid ${item.color}60`,
+                          borderTop: '5px solid transparent',
+                          borderBottom: '5px solid transparent'
+                        }
+                      }} />
+                    )}
+                  </Box>
+                </motion.div>
               </Grid>
             ))}
           </Grid>
@@ -923,67 +941,77 @@ const HomePage: React.FC = () => {
             }
           ].map((testimonial, index) => (
             <Grid size={{ xs: 12, md: 4 }} key={index}>
-              <Paper sx={{
-                p: 5,
-                borderRadius: 7,
-                background: 'linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)',
-                backdropFilter: 'blur(30px)',
-                border: `2px solid ${alpha(testimonial.color, 0.2)}`,
-                transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
-                position: 'relative',
-                overflow: 'hidden',
-                '&::before': {
-                  content: '""',
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  height: '4px',
-                  background: testimonial.gradient
-                },
-                '&:hover': {
-                  transform: 'translateY(-15px) scale(1.02)',
-                  background: `linear-gradient(135deg, ${alpha(testimonial.color, 0.1)} 0%, rgba(255,255,255,0.03) 100%)`,
-                  boxShadow: `0 25px 60px ${alpha(testimonial.color, 0.3)}`,
-                  border: `2px solid ${alpha(testimonial.color, 0.4)}`
-                }
-              }}>
-                <Stack direction="row" spacing={2.5} mb={3}>
-                  <Avatar sx={{ 
-                    background: testimonial.gradient,
-                    width: 60,
-                    height: 60,
-                    fontWeight: 900,
-                    fontSize: '1.3rem',
-                    boxShadow: `0 8px 25px ${alpha(testimonial.color, 0.4)}`
-                  }}>
-                    {testimonial.avatar}
-                  </Avatar>
-                  <Box>
-                    <Typography variant="h6" fontWeight="800" color="white">
-                      {testimonial.name}
-                    </Typography>
-                    <Typography variant="body2" color="rgba(255,255,255,0.6)" fontWeight={600}>
-                      {testimonial.role}
-                    </Typography>
-                  </Box>
-                </Stack>
-
-                <Stack direction="row" mb={3}>
-                  {[...Array(testimonial.rating)].map((_, i) => (
-                    <StarIcon key={i} sx={{ color: '#ffd54f', fontSize: 24 }} />
-                  ))}
-                </Stack>
-
-                <Typography variant="body1" sx={{ 
-                  color: 'rgba(255,255,255,0.85)',
-                  fontStyle: 'italic',
-                  lineHeight: 1.8,
-                  fontSize: '1.05rem'
+              {/* SCROLL REVEAL ve 3D EFFECT */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: index * 0.15 }}
+                whileHover={{ y: -10 }}
+                style={{ height: '100%' }}
+              >
+                <Paper sx={{
+                  p: 5,
+                  height: '100%',
+                  borderRadius: 7,
+                  background: 'linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)',
+                  backdropFilter: 'blur(30px)',
+                  border: `2px solid ${alpha(testimonial.color, 0.2)}`,
+                  transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  '&::before': {
+                    content: '""',
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: '4px',
+                    background: testimonial.gradient
+                  },
+                  '&:hover': {
+                    background: `linear-gradient(135deg, ${alpha(testimonial.color, 0.1)} 0%, rgba(255,255,255,0.03) 100%)`,
+                    boxShadow: `0 25px 60px ${alpha(testimonial.color, 0.3)}`,
+                    border: `2px solid ${alpha(testimonial.color, 0.4)}`
+                  }
                 }}>
-                  "{testimonial.text}"
-                </Typography>
-              </Paper>
+                  <Stack direction="row" spacing={2.5} mb={3}>
+                    <Avatar sx={{ 
+                      background: testimonial.gradient,
+                      width: 60,
+                      height: 60,
+                      fontWeight: 900,
+                      fontSize: '1.3rem',
+                      boxShadow: `0 8px 25px ${alpha(testimonial.color, 0.4)}`
+                    }}>
+                      {testimonial.avatar}
+                    </Avatar>
+                    <Box>
+                      <Typography variant="h6" fontWeight="800" color="white">
+                        {testimonial.name}
+                      </Typography>
+                      <Typography variant="body2" color="rgba(255,255,255,0.6)" fontWeight={600}>
+                        {testimonial.role}
+                      </Typography>
+                    </Box>
+                  </Stack>
+
+                  <Stack direction="row" mb={3}>
+                    {[...Array(testimonial.rating)].map((_, i) => (
+                      <StarIcon key={i} sx={{ color: '#ffd54f', fontSize: 24 }} />
+                    ))}
+                  </Stack>
+
+                  <Typography variant="body1" sx={{ 
+                    color: 'rgba(255,255,255,0.85)',
+                    fontStyle: 'italic',
+                    lineHeight: 1.8,
+                    fontSize: '1.05rem'
+                  }}>
+                    "{testimonial.text}"
+                  </Typography>
+                </Paper>
+              </motion.div>
             </Grid>
           ))}
         </Grid>
@@ -1010,154 +1038,162 @@ const HomePage: React.FC = () => {
           animation: `${shimmer} 3s linear infinite`
         }
       }}>
-        <Container maxWidth="md" sx={{ textAlign: 'center', position: 'relative' }}>
-          
-          {/* Animated Icon */}
-          <Box sx={{ 
-            width: 100,
-            height: 100,
-            borderRadius: '30px',
-            background: 'linear-gradient(135deg, #667eea, #764ba2)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            margin: '0 auto',
-            mb: 5,
-            boxShadow: '0 20px 60px rgba(102, 126, 234, 0.5)',
-            animation: `${pulse} 3s ease-in-out infinite`,
-            border: '4px solid rgba(255,255,255,0.2)'
-          }}>
-            <RocketLaunchIcon sx={{ fontSize: 50, color: 'white' }} />
-          </Box>
-
-          <Typography variant="h2" fontWeight="900" sx={{ 
-            color: 'white',
-            mb: 4,
-            fontSize: { xs: '3rem', md: '4.5rem' },
-            lineHeight: 1.2
-          }}>
-            Başarı Hikayeniz
-            <br />
-            <Box component="span" sx={{
-              background: 'linear-gradient(135deg, #ffd54f, #ff8a65)',
-              backgroundClip: 'text',
-              WebkitBackgroundClip: 'text',
-              color: 'transparent'
-            }}>
-              Burada Başlıyor
-            </Box>
-          </Typography>
-          
-          <Typography variant="h6" sx={{ 
-            color: 'rgba(255,255,255,0.8)',
-            mb: 6,
-            maxWidth: '550px',
-            mx: 'auto',
-            lineHeight: 1.8,
-            fontSize: '1.2rem'
-          }}>
-            İlk teklifinizi ücretsiz oluşturun. Kredi kartı gerekmez, 
-            anında başlayabilirsiniz. <strong style={{ color: '#ffd54f' }}>Farkı hemen görün.</strong>
-          </Typography>
-
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={4} justifyContent="center" mb={7}>
-            <Button 
-              variant="contained"
-              size="large"
-              onClick={() => navigate('/wizard')}
-              endIcon={<ArrowForwardIcon />}
-              sx={{ 
-                px: 8, 
-                py: 3,
-                fontSize: '1.3rem',
-                fontWeight: 900,
-                borderRadius: '50px',
-                background: 'linear-gradient(135deg, #ffd54f, #ff8a65)',
-                color: 'white',
-                boxShadow: '0 20px 50px rgba(255, 213, 79, 0.5)',
-                border: 'none',
-                position: 'relative',
-                overflow: 'hidden',
-                '&::before': {
-                  content: '""',
-                  position: 'absolute',
-                  top: 0,
-                  left: '-100%',
-                  width: '100%',
-                  height: '100%',
-                  background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
-                  transition: 'left 0.6s'
-                },
-                '&:hover': {
-                  transform: 'translateY(-5px) scale(1.05)',
-                  boxShadow: '0 25px 60px rgba(255, 213, 79, 0.7)',
-                  background: 'linear-gradient(135deg, #ffcc02, #ff7043)',
-                  '&::before': {
-                    left: '100%'
-                  }
-                }
-              }}
-            >
-              Ücretsiz Başla
-            </Button>
+        {/* CTA Scroll Reveal */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.7 }}
+        >
+          <Container maxWidth="md" sx={{ textAlign: 'center', position: 'relative' }}>
             
-            <Button 
-              variant="outlined"
-              size="large"
-              onClick={() => navigate('/dashboard')}
-              sx={{ 
-                px: 7, 
-                py: 3,
-                fontSize: '1.2rem',
-                fontWeight: 700,
-                borderRadius: '50px',
-                color: 'white',
-                borderColor: 'rgba(255,255,255,0.3)',
-                borderWidth: '2px',
-                backdropFilter: 'blur(10px)',
-                bgcolor: 'rgba(255,255,255,0.05)',
-                '&:hover': {
-                  borderColor: 'rgba(255,255,255,0.7)',
-                  bgcolor: 'rgba(255,255,255,0.15)',
-                  transform: 'translateY(-4px)',
-                  boxShadow: '0 15px 40px rgba(255,255,255,0.2)',
-                  borderWidth: '2px'
-                }
-              }}
-            >
-              Örnekleri Gör
-            </Button>
-          </Stack>
+            {/* Animated Icon */}
+            <Box sx={{ 
+              width: 100,
+              height: 100,
+              borderRadius: '30px',
+              background: 'linear-gradient(135deg, #667eea, #764ba2)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto',
+              mb: 5,
+              boxShadow: '0 20px 60px rgba(102, 126, 234, 0.5)',
+              animation: `${pulse} 3s ease-in-out infinite`,
+              border: '4px solid rgba(255,255,255,0.2)'
+            }}>
+              <RocketLaunchIcon sx={{ fontSize: 50, color: 'white' }} />
+            </Box>
 
-          {/* Premium Trust Indicators */}
-          <Box sx={{
-            p: 4,
-            borderRadius: 6,
-            background: 'rgba(255,255,255,0.05)',
-            backdropFilter: 'blur(10px)',
-            border: '1px solid rgba(255,255,255,0.1)'
-          }}>
-            <Stack 
-              direction={{ xs: 'column', sm: 'row' }} 
-              justifyContent="center" 
-              spacing={5}
-              divider={<Box sx={{ width: '2px', bgcolor: 'rgba(255,255,255,0.1)', display: { xs: 'none', sm: 'block' } }} />}
-            >
-              {[
-                { icon: "🔒", label: "256-bit SSL Şifreleme" },
-                { icon: "⚡", label: "99.9% Uptime Garantisi" }, 
-                { icon: "🇹🇷", label: "7/24 Türkçe Destek" }
-              ].map((item, index) => (
-                <Stack key={index} direction="row" alignItems="center" spacing={1.5}>
-                  <Typography fontSize="1.5rem">{item.icon}</Typography>
-                  <Typography variant="body2" fontWeight={600} color="rgba(255,255,255,0.9)">
-                    {item.label}
-                  </Typography>
-                </Stack>
-              ))}
+            <Typography variant="h2" fontWeight="900" sx={{ 
+              color: 'white',
+              mb: 4,
+              fontSize: { xs: '3rem', md: '4.5rem' },
+              lineHeight: 1.2
+            }}>
+              Başarı Hikayeniz
+              <br />
+              <Box component="span" sx={{
+                background: 'linear-gradient(135deg, #ffd54f, #ff8a65)',
+                backgroundClip: 'text',
+                WebkitBackgroundClip: 'text',
+                color: 'transparent'
+              }}>
+                Burada Başlıyor
+              </Box>
+            </Typography>
+            
+            <Typography variant="h6" sx={{ 
+              color: 'rgba(255,255,255,0.8)',
+              mb: 6,
+              maxWidth: '550px',
+              mx: 'auto',
+              lineHeight: 1.8,
+              fontSize: '1.2rem'
+            }}>
+              İlk teklifinizi ücretsiz oluşturun. Kredi kartı gerekmez, 
+              anında başlayabilirsiniz. <strong style={{ color: '#ffd54f' }}>Farkı hemen görün.</strong>
+            </Typography>
+
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={4} justifyContent="center" mb={7}>
+              <Button 
+                variant="contained"
+                size="large"
+                onClick={() => navigate('/wizard')}
+                endIcon={<ArrowForwardIcon />}
+                sx={{ 
+                  px: 8, 
+                  py: 3,
+                  fontSize: '1.3rem',
+                  fontWeight: 900,
+                  borderRadius: '50px',
+                  background: 'linear-gradient(135deg, #ffd54f, #ff8a65)',
+                  color: 'white',
+                  boxShadow: '0 20px 50px rgba(255, 213, 79, 0.5)',
+                  border: 'none',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  '&::before': {
+                    content: '""',
+                    position: 'absolute',
+                    top: 0,
+                    left: '-100%',
+                    width: '100%',
+                    height: '100%',
+                    background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
+                    transition: 'left 0.6s'
+                  },
+                  '&:hover': {
+                    transform: 'translateY(-5px) scale(1.05)',
+                    boxShadow: '0 25px 60px rgba(255, 213, 79, 0.7)',
+                    background: 'linear-gradient(135deg, #ffcc02, #ff7043)',
+                    '&::before': {
+                      left: '100%'
+                    }
+                  }
+                }}
+              >
+                Ücretsiz Başla
+              </Button>
+              
+              <Button 
+                variant="outlined"
+                size="large"
+                onClick={() => navigate('/dashboard')}
+                sx={{ 
+                  px: 7, 
+                  py: 3,
+                  fontSize: '1.2rem',
+                  fontWeight: 700,
+                  borderRadius: '50px',
+                  color: 'white',
+                  borderColor: 'rgba(255,255,255,0.3)',
+                  borderWidth: '2px',
+                  backdropFilter: 'blur(10px)',
+                  bgcolor: 'rgba(255,255,255,0.05)',
+                  '&:hover': {
+                    borderColor: 'rgba(255,255,255,0.7)',
+                    bgcolor: 'rgba(255,255,255,0.15)',
+                    transform: 'translateY(-4px)',
+                    boxShadow: '0 15px 40px rgba(255,255,255,0.2)',
+                    borderWidth: '2px'
+                  }
+                }}
+              >
+                Örnekleri Gör
+              </Button>
             </Stack>
-          </Box>
-        </Container>
+
+            {/* Premium Trust Indicators */}
+            <Box sx={{
+              p: 4,
+              borderRadius: 6,
+              background: 'rgba(255,255,255,0.05)',
+              backdropFilter: 'blur(10px)',
+              border: '1px solid rgba(255,255,255,0.1)'
+            }}>
+              <Stack 
+                direction={{ xs: 'column', sm: 'row' }} 
+                justifyContent="center" 
+                spacing={5}
+                divider={<Box sx={{ width: '2px', bgcolor: 'rgba(255,255,255,0.1)', display: { xs: 'none', sm: 'block' } }} />}
+              >
+                {[
+                  { icon: "🔒", label: "256-bit SSL Şifreleme" },
+                  { icon: "⚡", label: "99.9% Uptime Garantisi" }, 
+                  { icon: "🇹🇷", label: "7/24 Türkçe Destek" }
+                ].map((item, index) => (
+                  <Stack key={index} direction="row" alignItems="center" spacing={1.5}>
+                    <Typography fontSize="1.5rem">{item.icon}</Typography>
+                    <Typography variant="body2" fontWeight={600} color="rgba(255,255,255,0.9)">
+                      {item.label}
+                    </Typography>
+                  </Stack>
+                ))}
+              </Stack>
+            </Box>
+          </Container>
+        </motion.div>
       </Box>
     </Box>
   );
