@@ -1,18 +1,21 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { type RootState } from '../app/store';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios'; 
 import ReactMarkdown from 'react-markdown'; 
+
 import { 
   nextStep, 
   prevStep, 
   setProposalData, 
   setLoading, 
-  saveProposalToHistory
+  saveProposalToHistory,
+  setProposalId,
+  setProposalStatus
 } from '../features/proposal/proposalSlice';
 import { 
     Container, Paper, Stepper, Step, StepLabel, Button, Typography, TextField, Box, 
@@ -331,7 +334,7 @@ const CustomStepper: React.FC<{ steps: string[]; activeStep: number }> = ({ step
 const WizardPage: React.FC = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { step, clientName, projectDescription, loading } = useSelector((state: RootState) => state.proposal);
+  const { step, clientName, projectDescription, loading, proposalId, status } = useSelector((state: RootState) => state.proposal);
   const { t } = useTranslation();
 
   const [aiResult, setAiResult] = useState<string>('');
@@ -384,7 +387,7 @@ const WizardPage: React.FC = () => {
     documentTitle: `Teklif-${clientName || 'Taslak'}`,
   });
 
-  const handleAIAnalysis = async () => {
+ const handleAIAnalysis = async () => {
     const token = localStorage.getItem('token');
     if (!token) {
         alert("Oturum süreniz dolmuş. Lütfen tekrar giriş yapın.");
@@ -393,6 +396,7 @@ const WizardPage: React.FC = () => {
     }
 
     dispatch(setLoading(true));
+    dispatch(setProposalStatus('pending')); // Bekleme modunu aktifleştir
     
     try {
         const payload = {
@@ -412,13 +416,17 @@ const WizardPage: React.FC = () => {
             }
         });
 
-        if (response.data && response.data.generatedCoverLetter) {
-            setAiResult(response.data.generatedCoverLetter);
-            dispatch(nextStep());
+        // YENİ MİMARİ: Backend'i beklemiyoruz, sadece gelen kuyruk ID'sini kaydediyoruz
+        if (response.data && response.data.proposalId) {
+            dispatch(setProposalId(response.data.proposalId)); 
+            // NOT: Burada nextStep() YAPMIYORUZ. Sonuç gelince polling yapacak.
         }
 
     } catch (error: any) {
         console.error("AI Hatası:", error);
+        dispatch(setLoading(false));
+        dispatch(setProposalStatus('error'));
+        
         if (error.response && error.response.status === 401) {
             alert("Yetkilendirme hatası! Lütfen tekrar giriş yapın.");
             localStorage.removeItem('token');
@@ -426,10 +434,52 @@ const WizardPage: React.FC = () => {
         } else {
             alert("Analiz sırasında bir hata oluştu. Lütfen tekrar deneyin.");
         }
-    } finally {
-        dispatch(setLoading(false));
     }
   };
+
+  // YENİ EKLENEN POLLING MANTIĞI
+  // YENİ EKLENEN POLLING MANTIĞI (GÜNCELLENDİ)
+  useEffect(() => {
+    let intervalId: ReturnType<typeof setInterval>;
+
+    const checkProposalStatus = async () => {
+      // Eğer ID yoksa veya işlem zaten bitmişse kontrol etme
+      if (!proposalId || status === 'completed') return;
+
+      try {
+        const token = localStorage.getItem('token');
+        const response = await axios.get(`http://localhost:5001/api/proposals/${proposalId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        const data = response.data;
+        
+        // Backend "completed" dediyse VEYA gelen metin taslak metinden farklıysa (AI doldurduysa)
+        const isCompleted = data.status === 'completed' || 
+                           (data.generatedCoverLetter && data.generatedCoverLetter !== 'Yapay zeka teklifinizi hazırlıyor, lütfen bekleyin...');
+
+        if (isCompleted) {
+          clearInterval(intervalId); // Sormayı bırak
+          dispatch(setProposalStatus('completed'));
+          setAiResult(data.generatedCoverLetter); // Gemini metnini ekrana bas
+          dispatch(setLoading(false)); // Yükleme animasyonunu durdur
+          dispatch(nextStep()); // Otomatik olarak Step 2'ye (Sonuç Sayfasına) geç
+          dispatch(setProposalId(null)); // ID'yi temizle
+        }
+      } catch (error) {
+        console.error("Durum sorgulama hatası:", error);
+      }
+    };
+
+    // Eğer bir ID'miz varsa ve durum 'pending' ise 3 saniyede bir kontrol et
+    if (proposalId && status === 'pending') {
+      intervalId = setInterval(checkProposalStatus, 3000);
+    }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId); // Component kapanırsa intervali temizle
+    };
+  }, [proposalId, status, dispatch]);
 
   const handleNext = () => {
     if (step === 0) {

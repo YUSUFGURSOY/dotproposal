@@ -1,4 +1,3 @@
-
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 
 // Geçmişteki bir teklifin veri yapısı
@@ -18,7 +17,10 @@ interface ProposalState {
   generatedItems: string[];
   totalPrice: number;
   loading: boolean;
-  history: ProposalRecord[]; // YENİ: Geçmiş teklifler listesi
+  history: ProposalRecord[]; 
+  // RabbitMQ asenkron takibi için
+  proposalId: string | null;
+  status: 'idle' | 'pending' | 'completed' | 'error';
 }
 
 const initialState: ProposalState = {
@@ -29,6 +31,9 @@ const initialState: ProposalState = {
   totalPrice: 0,
   loading: false,
   history: [], 
+ 
+  proposalId: null,
+  status: 'idle',
 };
 
 export const proposalSlice = createSlice({
@@ -50,6 +55,14 @@ export const proposalSlice = createSlice({
       state.totalPrice = action.payload.price;
     },
 
+    // 👇 YENİ EKLENENLER: Backend'den ID geldiğinde ve durum değiştiğinde çağrılacak
+    setProposalId: (state, action: PayloadAction<string | null>) => {
+      state.proposalId = action.payload;
+    },
+    setProposalStatus: (state, action: PayloadAction<'idle' | 'pending' | 'completed' | 'error'>) => {
+      state.status = action.payload;
+    },
+
     // Mevcut teklifi geçmişe kaydet ve sihirbazı sıfırlama
     saveProposalToHistory: (state) => {
       const newRecord: ProposalRecord = {
@@ -69,6 +82,10 @@ export const proposalSlice = createSlice({
       state.projectDescription = '';
       state.generatedItems = [];
       state.totalPrice = 0;
+      
+      //  Geçmişe kaydettikten sonra asenkron durumu da sıfırla
+      state.proposalId = null;
+      state.status = 'idle';
     },
 
     // Geçmişten teklif silme
@@ -78,5 +95,16 @@ export const proposalSlice = createSlice({
   },
 });
 
-export const { nextStep, prevStep, setProposalData, setLoading, setAIResults, saveProposalToHistory, deleteProposal } = proposalSlice.actions;
+export const { 
+  nextStep, 
+  prevStep, 
+  setProposalData, 
+  setLoading, 
+  setAIResults, 
+  saveProposalToHistory, 
+  deleteProposal,
+  setProposalId,     
+  setProposalStatus  
+} = proposalSlice.actions;
+
 export default proposalSlice.reducer;
