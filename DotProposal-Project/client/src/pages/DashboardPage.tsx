@@ -39,6 +39,7 @@ interface Proposal {
   createdAt: string;
   tone: string;
   selectedFeatures?: string[];
+  aiInsights?: string[];
 }
 
 const DashboardPage: React.FC = () => {
@@ -290,9 +291,32 @@ const DashboardPage: React.FC = () => {
 
                   <Divider sx={{ my: 2 }} />
 
-                  <Typography variant="body2" color="text.secondary">
-                    {item.selectedFeatures ? item.selectedFeatures.length : 0} {t('dashboard.items', 'Özellik')}
-                  </Typography>
+                  
+
+                  {/* ÖZELLİKLER VE AI ROZETİ YAN YANA */}
+                  <Stack direction="row" justifyContent="space-between" alignItems="center">
+                    <Typography variant="body2" color="text.secondary">
+                      {item.selectedFeatures ? item.selectedFeatures.length : 0} {t('dashboard.items', 'Özellik')}
+                    </Typography>
+                    
+                    {/* 🤖 ŞIK AI TAVSİYE ROZETİ */}
+                    {item.aiInsights && item.aiInsights.length > 0 && (
+                      <Chip 
+                        icon={<AutoAwesomeIcon sx={{ color: '#A3ADF0 !important', fontSize: 16 }} />} 
+                        label={`${item.aiInsights.length} Gizli Tavsiye`} 
+                        size="small" 
+                        sx={{ 
+                          background: 'rgba(108, 120, 214, 0.15)', 
+                          color: '#A3ADF0', 
+                          border: '1px solid rgba(108, 120, 214, 0.4)',
+                          fontWeight: 600,
+                          fontFamily: '"Sora", sans-serif'
+                        }} 
+                      />
+                    )}
+                  </Stack>
+
+                
                 </CardContent>
 
                 <CardActions sx={{ justifyContent: 'space-between', px: 2, pb: 2 }}>

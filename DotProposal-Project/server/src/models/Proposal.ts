@@ -17,6 +17,7 @@ export interface IProposal extends Document {
   
   createdAt: Date;
   updatedAt: Date;
+  aiInsights: string[];
 }
 
 const proposalSchema = new Schema<IProposal>({
@@ -45,7 +46,10 @@ const proposalSchema = new Schema<IProposal>({
     type: String,
     default: 'Professional',
   },
-  
+  aiInsights: { 
+    type: [String], // Array of strings
+    default: [] 
+  },
   // ✅ YENİ ALANLARIN ŞEMALARI
   selectedFeatures: {
     type: [String], // String Dizisi
@@ -58,7 +62,8 @@ const proposalSchema = new Schema<IProposal>({
   selectedSections: {
     type: [String], // String Dizisi
     default: []
-  }
+  },
+  
 
 }, {
   timestamps: true

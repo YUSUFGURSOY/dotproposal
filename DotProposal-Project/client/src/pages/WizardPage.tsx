@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios'; 
 import ReactMarkdown from 'react-markdown'; 
 
+
 import { 
   nextStep, 
   prevStep, 
@@ -32,6 +33,7 @@ import { useTranslation } from 'react-i18next';
 import { createTheme, ThemeProvider, styled, keyframes } from '@mui/material/styles';
 
 // ─── CUSTOM THEME ──────────────────────────────────────────────────────────────
+
 const theme = createTheme({
   palette: {
     mode: 'dark',
@@ -289,6 +291,23 @@ const SpinRing = styled(Box)<{ size?: number; color?: string; speed?: string }>(
   animation: `${rotateSlow} ${speed} linear infinite`,
 }));
 
+const InsightCard = styled(Box)({
+  background: 'rgba(108, 120, 214, 0.1)',
+  border: '1px solid rgba(108, 120, 214, 0.3)',
+  borderRadius: 16,
+  padding: '20px',
+  marginBottom: '24px',
+  animation: `${fadeUp} 0.6s ease both`,
+  position: 'relative',
+  overflow: 'hidden',
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    top: 0, left: 0, width: '4px', height: '100%',
+    background: 'linear-gradient(to bottom, #6C78D6, #7B529E)',
+  }
+});
+
 // ─── CUSTOM STEPPER ────────────────────────────────────────────────────────────
 const CustomStepper: React.FC<{ steps: string[]; activeStep: number }> = ({ steps, activeStep }) => (
   <Box display="flex" alignItems="center" mb={4}>
@@ -436,7 +455,9 @@ const WizardPage: React.FC = () => {
 
   // YENİ EKLENEN POLLING MANTIĞI
   // YENİ EKLENEN POLLING MANTIĞI (GÜNCELLENDİ)
+  const [insights, setInsights] = useState<string[]>([])
   useEffect(() => {
+    
     let intervalId: ReturnType<typeof setInterval>;
 
     const checkProposalStatus = async () => {
@@ -459,6 +480,7 @@ const WizardPage: React.FC = () => {
           clearInterval(intervalId); // Sormayı bırak
           dispatch(setProposalStatus('completed'));
           setAiResult(data.generatedCoverLetter); // Gemini metnini ekrana bas
+          setInsights(data.aiInsights || []);
           dispatch(setLoading(false)); // Yükleme animasyonunu durdur
           dispatch(nextStep()); // Otomatik olarak Step 2'ye (Sonuç Sayfasına) geç
           dispatch(setProposalId(null)); // ID'yi temizle
@@ -686,7 +708,32 @@ const WizardPage: React.FC = () => {
 
             {/* ─── STEP 2: Result ───────────────────────────────── */}
             {step === 2 && (
+                
               <Box sx={{ animation: `${fadeUp} 0.4s ease both` }}>
+                {/* 🤖 AI STRATEJİK TAVSİYELER PANELİ */}
+    {insights && insights.length > 0 && (
+      <InsightCard>
+        <Box display="flex" alignItems="center" gap={1.5} mb={2}>
+          <SettingsSuggestIcon sx={{ color: '#A3ADF0' }} />
+          <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#A3ADF0', letterSpacing: '0.05em', textTransform: 'uppercase', fontSize: 12 }}>
+            Sana Özel Stratejik Tavsiyeler (Gizli)
+          </Typography>
+        </Box>
+        <Box display="flex" flexDirection="column" gap={1.5}>
+          {insights.map((insight, idx) => (
+            <Box key={idx} display="flex" gap={1.5} alignItems="flex-start">
+              <Box sx={{ mt: 0.8, width: 6, height: 6, borderRadius: '50%', background: '#6C78D6', flexShrink: 0 }} />
+              <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)', fontSize: 13, lineHeight: 1.5, fontFamily: '"Sora", sans-serif' }}>
+                {insight}
+              </Typography>
+            </Box>
+          ))}
+        </Box>
+      </InsightCard>
+    )}
+
+    {/* Mevcut Header (Teklifiniz Hazır kısmı) burdan devam edecek... */}
+                
                 <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={3} flexWrap="wrap" gap={2}>
                   <Box>
                     <Box display="flex" alignItems="center" gap={1.5} mb={0.5}>

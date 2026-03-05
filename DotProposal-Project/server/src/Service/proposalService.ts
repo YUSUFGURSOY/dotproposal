@@ -16,7 +16,6 @@ export interface CreateProposalData {
   selectedSections?: string[];
 }
 
-// YALNIZCA PARAMETREYE 'proposalId' EKLENDİ
 export const generateProposalService = async (userId: string, data: CreateProposalData, proposalId: string) => {
   const pdf = require('pdf-parse-fork');
 
@@ -24,7 +23,12 @@ export const generateProposalService = async (userId: string, data: CreatePropos
     throw new Error("Sunucu hatası: API Anahtarı yapılandırılmamış.");
   }
   const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
-  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+  
+  // 1. DEĞİŞİKLİK: Gemini modelini kesinlikle JSON dönmesi için yapılandırıyoruz
+  const model = genAI.getGenerativeModel({ 
+    model: "gemini-2.5-flash",
+    generationConfig: { responseMimeType: "application/json" } // JSON garantisi
+  });
 
   // 1. Kullanıcıyı ve CV'yi bul
   const user = await User.findById(userId);
@@ -59,13 +63,22 @@ export const generateProposalService = async (userId: string, data: CreatePropos
   // 3. Gemini'ye İstek At
   const result = await model.generateContent(prompt);
   const response = await result.response;
-  const aiGeneratedLetter = response.text();
+  const rawText = response.text();
 
-  if (!aiGeneratedLetter) {
+  if (!rawText) {
     throw new Error("Gemini teklif oluşturamadı.");
   }
 
-  // Yeni kayıt oluşturmak yerine, Controller'ın açtığı boş kaydı güncelliyoruz
+  // 2. DEĞİŞİKLİK: Gelen JSON string'ini parçalıyoruz (Parse işlemi)
+  let aiData;
+  try {
+    aiData = JSON.parse(rawText);
+  } catch (error) {
+    console.error("JSON Çeviri Hatası:", error);
+    throw new Error("Yapay zeka uygun formatta cevap veremedi.");
+  }
+
+  // 3. DEĞİŞİKLİK: Yeni kayıt oluşturmak yerine, veritabanını yeni JSON verileriyle güncelliyoruz
   const proposal = await Proposal.findByIdAndUpdate(
     proposalId,
     {
@@ -74,7 +87,11 @@ export const generateProposalService = async (userId: string, data: CreatePropos
       selectedFeatures: data.selectedFeatures || [],
       hourlyRate: data.hourlyRate || '',
       selectedSections: data.selectedSections || [],
-      generatedCoverLetter: aiGeneratedLetter,
+      
+      // JSON içinden gelen verileri ayırarak veritabanına kaydediyoruz:
+      generatedCoverLetter: aiData.coverLetter, 
+      aiInsights: aiData.aiInsights || [], 
+      
       status: 'completed' // Frontend bu statüyü gördüğünde yükleme ekranını kapatacak
     },
     { new: true }
