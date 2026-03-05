@@ -18,7 +18,7 @@ import {
   setProposalStatus
 } from '../features/proposal/proposalSlice';
 import { 
-    Container, Paper, Stepper, Step, StepLabel, Button, Typography, TextField, Box, 
+    Paper, Button, Typography, TextField, Box, 
     CircularProgress, Divider, FormGroup, FormControlLabel, Checkbox, InputAdornment,
     Accordion, AccordionSummary, AccordionDetails
 } from '@mui/material';
@@ -89,10 +89,7 @@ const rotateSlow = keyframes`
   to   { transform: rotate(360deg); }
 `;
 
-const shimmer = keyframes`
-  0%   { background-position: -400px 0; }
-  100% { background-position: 400px 0; }
-`;
+
 
 // ─── STYLED COMPONENTS ────────────────────────────────────────────────────────
 const PageWrapper = styled(Box)({
