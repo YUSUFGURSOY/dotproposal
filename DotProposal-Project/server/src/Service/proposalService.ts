@@ -1,10 +1,10 @@
-// server/src/services/proposalService.ts
+// server/src/Service/proposalService.ts
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import fs from 'fs';
 import path from 'path';
 import User from '../models/User';
 import Proposal from '../models/Proposal';
-import { buildProposalPrompt } from '../utils/promptBuilder'; // YENİ EKLENDİ
+import { buildProposalPrompt } from '../utils/promptBuilder'; 
 
 export interface CreateProposalData {
   jobTitle: string;
@@ -16,7 +16,8 @@ export interface CreateProposalData {
   selectedSections?: string[];
 }
 
-export const generateProposalService = async (userId: string, data: CreateProposalData) => {
+// YALNIZCA PARAMETREYE 'proposalId' EKLENDİ
+export const generateProposalService = async (userId: string, data: CreateProposalData, proposalId: string) => {
   const pdf = require('pdf-parse-fork');
 
   if (!process.env.GOOGLE_API_KEY) {
@@ -43,7 +44,7 @@ export const generateProposalService = async (userId: string, data: CreatePropos
 
   console.log("✅ Veriler Hazır, DotProposal Teklifi Oluşturuyor...");
 
-  // 2. Utils dosyamızdan dinamik prompt'u alıyoruz (KOD BURADA ÇOK SADELEŞTİ)
+  // 2. Utils dosyamızdan dinamik prompt'u alıyoruz
   const prompt = buildProposalPrompt({
     cvText,
     jobTitle: data.jobTitle,
@@ -64,18 +65,20 @@ export const generateProposalService = async (userId: string, data: CreatePropos
     throw new Error("Gemini teklif oluşturamadı.");
   }
 
-  // 4. Veritabanına Kaydet ve Döndür
-  const proposal = await Proposal.create({
-    user: userId,
-    jobTitle: data.jobTitle,
-    jobDescription: data.jobDescription,
-    companyName: data.companyName || 'Belirtilmemiş',
-    tone: data.tone || 'Professional',
-    selectedFeatures: data.selectedFeatures || [],
-    hourlyRate: data.hourlyRate || '',
-    selectedSections: data.selectedSections || [],
-    generatedCoverLetter: aiGeneratedLetter
-  });
+  // Yeni kayıt oluşturmak yerine, Controller'ın açtığı boş kaydı güncelliyoruz
+  const proposal = await Proposal.findByIdAndUpdate(
+    proposalId,
+    {
+      companyName: data.companyName || 'Belirtilmemiş',
+      tone: data.tone || 'Professional',
+      selectedFeatures: data.selectedFeatures || [],
+      hourlyRate: data.hourlyRate || '',
+      selectedSections: data.selectedSections || [],
+      generatedCoverLetter: aiGeneratedLetter,
+      status: 'completed' // Frontend bu statüyü gördüğünde yükleme ekranını kapatacak
+    },
+    { new: true }
+  );
 
   return proposal;
 };

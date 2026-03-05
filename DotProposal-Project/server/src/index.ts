@@ -7,6 +7,8 @@ import connectDB from './config/db';
 import authRoutes from './routes/authRoutes';
 import userRoutes from './routes/userRoutes'; // Kullanıcı rotalarını import ettik
 import proposalRoutes from './routes/proposalRoutes';
+import { connectQueue } from './config/rabbitmq'; // (RabbitMQ Import)
+import { startProposalWorker } from './workers/proposalWorker';
 
 dotenv.config();
 
@@ -59,6 +61,18 @@ app.get('/', (req: Request, res: Response) => {
   res.send('DotProposal Backend Çalışıyor! 🚀');
 });
 
-app.listen(PORT, () => {
-  console.log(`⚡️[server]: Sunucu http://localhost:${PORT} adresinde çalışıyor`);
-});
+//Sunucuyu başlatmadan önce RabbitMQ'ya bağlanmasını sağlıyoruz
+const startServer = async () => {
+    try {
+        await connectQueue(); // RabbitMQ'ya bağlan
+        await startProposalWorker();
+
+        app.listen(PORT, () => {
+          console.log(`⚡️[server]: Sunucu http://localhost:${PORT} adresinde çalışıyor`);
+        });
+    } catch (error) {
+        console.log("Sunucu başlatma hatası:", error);
+    }
+};
+
+startServer();

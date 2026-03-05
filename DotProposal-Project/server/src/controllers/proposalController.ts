@@ -2,20 +2,62 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middleware/authMiddleware';
 import * as proposalService from '../Service/proposalService';
+import { getChannel } from '../config/rabbitmq'; // 👈 YENİ EKLENDİ: RabbitMQ kanalı
+import Proposal from '../models/Proposal';       // 👈 YENİ EKLENDİ: Veritabanı modeli
 
-// 1. TEKLİF OLUŞTURMA FONKSİYONU
+// 1. TEKLİF OLUŞTURMA FONKSİYONU (GÜNCELLENDİ: RabbitMQ Asenkron Yapı)
 export const createProposal = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user._id;
-    // Bütün işi Service katmanına devrediyoruz
-    const proposal = await proposalService.generateProposalService(userId, req.body);
     
-    res.status(201).json(proposal);
+    // Frontend'den gelen verileri alıyoruz
+    const { jobTitle, jobDescription } = req.body; 
+
+    // 1. Veritabanında "pending" (bekliyor) durumunda bir taslak kayıt oluştur
+    const newProposal = new Proposal({
+      user: userId,
+      status: 'pending', // İşçi bitirene kadar beklemede kalacak
+      
+      // Mongoose kızmasın diye gerekli alanları dolduruyoruz:
+      jobTitle: jobTitle || 'Taslak İş Başlığı', 
+      jobDescription: jobDescription || 'Taslak İş Açıklaması',
+      generatedCoverLetter: 'Yapay zeka teklifinizi hazırlıyor, lütfen bekleyin...', 
+      
+      createdAt: new Date()
+    });
+    
+    await newProposal.save();
+
+    // 2. RabbitMQ kanalını al
+    const channel = getChannel();
+    if (!channel) {
+       res.status(500).json({ message: "Mesaj kuyruğu bağlantısı bulunamadı." });
+       return;
+    }
+
+    // 3. İşçiye (Worker) gönderilecek paket veriyi hazırla
+    const queueData = {
+      proposalId: newProposal._id,
+      userId: userId,
+      requestBody: req.body // Frontend'den gelen ilan bilgileri vb.
+    };
+
+    // 4. Mesajı kuyruğa fırlat
+    channel.sendToQueue(
+      'proposal_queue',
+      Buffer.from(JSON.stringify(queueData)),
+      { persistent: true } // Mesajın kaybolmamasını garanti altına al
+    );
+
+    // 5. Kullanıcıya ANINDA cevap dön (Gemini'yi beklemiyoruz!)
+    res.status(202).json({
+      message: 'Teklifiniz sıraya alındı ve arka planda hazırlanıyor.',
+      proposalId: newProposal._id
+    });
+
   } catch (error: any) {
     console.error("❌ HATA DETAYI:", error);
-    // Service katmanından fırlatılan özel mesajları frontend'e iletiyoruz
-    const statusCode = error.message.includes('bulunamadı') || error.message.includes('Lütfen önce') ? 400 : 500;
-    res.status(statusCode).json({ 
+    res.status(500).json({ 
       message: error.message || 'Teklif oluşturulurken bir hata oluştu.' 
     });
   }
