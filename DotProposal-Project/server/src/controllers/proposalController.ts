@@ -5,7 +5,8 @@ import { AuthRequest } from '../middleware/authMiddleware';
 import * as proposalService from '../Service/proposalService';
 import { getChannel } from '../config/rabbitmq'; 
 import Proposal from '../models/Proposal';       
-
+import User from '../models/User'; 
+import { sendEmail } from '../utils/sendEmail'; // Mail aracımızı çağırdık
 // 1. TEKLİF OLUŞTURMA FONKSİYONU 
 export const createProposal = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
@@ -152,21 +153,40 @@ export const updateDealStatus = async (req: AuthRequest, res: Response): Promise
 };
 
 // 6. YENİ: MÜŞTERİDEN GELEN GERİ BİLDİRİMİ KAYDETME (AÇIK ROTA)
+// 6. YENİ: MÜŞTERİDEN GELEN GERİ BİLDİRİMİ KAYDETME VE MAİL ATMA
 export const addClientFeedback = async (req: Request, res: Response): Promise<void> => {
   try {
     const { feedback } = req.body;
-    const proposal = await Proposal.findById(req.params.id);
+    
+    // YENİ: Teklifi çekerken, teklif sahibinin (user) isim ve mail bilgisini de getiriyoruz
+    const proposal = await Proposal.findById(req.params.id).populate('user', 'name email');
 
     if (!proposal) {
       res.status(404).json({ message: 'Teklif bulunamadı.' });
       return;
     }
 
-    // Müşteriden gelen mesajı veritabanına kaydet
+    // Mesajı veritabanına kaydet
     proposal.clientFeedback = feedback;
-    proposal.clientFeedbackDate = new Date(); 
+    proposal.clientFeedbackDate = new Date();
     proposal.isClientFeedbackRead = false;
     await proposal.save();
+
+    // 👇 YENİ: SİSTEMİ BOZMADAN ARKA PLANDA E-POSTA GÖNDERME KISMI
+    try {
+      const user: any = proposal.user;
+      if (user && user.email) {
+        const message = `Merhaba ${user.name},\n\n"${proposal.jobTitle}" başlıklı projeniz için müşterinizden yeni bir mesaj geldi!\n\nMesaj Detayı:\n"${feedback}"\n\nLütfen DotProposal paneline girerek mesajı kontrol edin ve müşterinize dönüş yapın.\n\nİyi çalışmalar,\nDotProposal Bildirim Sistemi`;
+        
+        await sendEmail({
+          email: user.email, // Teklif sahibinin kayıtlı e-posta adresi
+          subject: '💬 Yeni Mesaj Var! - DotProposal',
+          message: message,
+        });
+      }
+    } catch (emailError) {
+      console.error('E-posta gönderilemedi (Ancak mesaj veritabanına kaydedildi):', emailError);
+    }
 
     res.status(200).json({ message: 'Geri bildirim başarıyla iletildi.' });
   } catch (error: any) {
