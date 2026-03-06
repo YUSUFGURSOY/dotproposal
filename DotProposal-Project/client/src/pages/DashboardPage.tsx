@@ -22,6 +22,9 @@ import axios from 'axios';
 import { useTranslation } from 'react-i18next';
 import { alpha } from '@mui/system';
 
+// GRAFİK KÜTÜPHANESİ 
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
+
 interface Proposal {
   _id: string;
   jobTitle: string;
@@ -35,11 +38,10 @@ interface Proposal {
   viewedAt?: string;
   dealStatus?: string;
   clientFeedback?: string;
-  clientFeedbackDate?: string; // 👈 HATA 1 BURADAN DÜZELTİLDİ
-  isClientFeedbackRead?: boolean; // 👈 HATA 1 BURADAN DÜZELTİLDİ
+  clientFeedbackDate?: string; 
+  isClientFeedbackRead?: boolean; 
 }
 
-// Süre hesaplayıcı (Örn: "5 dk", "2 saat")
 const timeSince = (dateString?: string) => {
   if (!dateString) return '';
   const seconds = Math.floor((new Date().getTime() - new Date(dateString).getTime()) / 1000);
@@ -85,8 +87,6 @@ const DashboardPage: React.FC = () => {
     fetchProposals();
   }, [navigate]);
 
-
-  // 👇 HATA 2 BURADAN DÜZELTİLDİ (Çift fonksiyon teke indirildi)
   const handleDelete = async (id: string) => {
     if (window.confirm(t('dashboard.deleteConfirm', 'Bu teklifi silmek istediğinize emin misiniz?'))) {
       try {
@@ -119,6 +119,14 @@ const DashboardPage: React.FC = () => {
   const totalResponded = acceptedCount + rejectedCount;
   const winRate = totalResponded > 0 ? Math.round((acceptedCount / totalResponded) * 100) : 0;
 
+  // 👇 YENİ: MİNİ GRAFİK VERİSİ
+  const chartData = [
+    { name: 'Kabul', value: acceptedCount, color: '#4caf50' },
+    { name: 'İletildi', value: proposals.filter(p => p.dealStatus === 'İletildi').length, color: '#2196f3' },
+    { name: 'Red', value: rejectedCount, color: '#f44336' },
+    { name: 'Taslak', value: proposals.filter(p => p.dealStatus === 'Taslak' || !p.dealStatus).length, color: '#9e9e9e' }
+  ].filter(data => data.value > 0);
+
   return (
     <Box sx={{ background: gradientBg, minHeight: '100vh', py: 8 }}>
       <Container maxWidth="lg">
@@ -146,12 +154,13 @@ const DashboardPage: React.FC = () => {
           </Stack>
         </Paper>
 
-        {/* --- İSTATİSTİK KARTLARI --- */}
+        {/* --- İSTATİSTİK KARTLARI (YENİ MİNİ GRAFİK BURADA) --- */}
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr 1fr' }, gap: 3, mb: 5 }}>
           {[
             { label: 'Toplam Teklif', value: proposals.length, icon: <DescriptionIcon />, color: '#667eea' },
             { label: 'Bu Ay', value: proposals.filter((p) => new Date(p.createdAt).getMonth() === new Date().getMonth()).length, icon: <TrendingUpIcon />, color: '#4ecdc4' },
-            { label: 'Kabul Edilen', value: acceptedCount, icon: <AutoAwesomeIcon />, color: '#ff6b6b' },
+            // 👇 KABUL EDİLEN KARTI (Avatar yerine Grafik eklendi)
+            { label: 'Kabul Edilen', value: acceptedCount, isChart: true, color: '#4caf50' }, 
             { label: 'Kazanma Oranı', value: `%${winRate}`, icon: <EmojiEventsIcon />, color: '#ffb300' }, 
           ].map((stat, index) => (
             <Paper
@@ -159,9 +168,32 @@ const DashboardPage: React.FC = () => {
               sx={{ p: 3, borderRadius: 4, background: alpha('#fff', 0.95), backdropFilter: 'blur(10px)', border: `1px solid ${alpha(stat.color, 0.2)}`, transition: 'all 0.3s ease', '&:hover': { transform: 'translateY(-5px)', boxShadow: `0 15px 35px ${alpha(stat.color, 0.3)}` } }}
             >
               <Stack direction="row" alignItems="center" spacing={2}>
-                <Avatar sx={{ bgcolor: `${stat.color}20`, color: stat.color, width: 50, height: 50 }}>
-                  {stat.icon}
-                </Avatar>
+                
+                {stat.isChart ? (
+                  /* 📊 İKON YERİNE ZARİF MİNİ GRAFİK */
+                  <Box sx={{ width: 56, height: 56, position: 'relative' }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie data={chartData} innerRadius={18} outerRadius={26} paddingAngle={3} dataKey="value" stroke="none">
+                          {chartData.map((entry, idx) => (
+                            <Cell key={`cell-${idx}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip 
+                          cursor={false}
+                          contentStyle={{ borderRadius: '8px', padding: '4px 8px', fontSize: '0.75rem', border: 'none', boxShadow: '0 4px 15px rgba(0,0,0,0.1)' }}
+                          itemStyle={{ color: '#333', fontWeight: 'bold' }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </Box>
+                ) : (
+                  /* 👤 NORMAL İKONLAR */
+                  <Avatar sx={{ bgcolor: `${stat.color}20`, color: stat.color, width: 50, height: 50 }}>
+                    {stat.icon}
+                  </Avatar>
+                )}
+
                 <Box>
                   <Typography variant="h4" fontWeight="bold" color="text.primary">
                     {stat.value}
@@ -297,7 +329,7 @@ const DashboardPage: React.FC = () => {
     </Stack>
   </Box>
 
- {/* ── MIDDLE CONTENT ── */}
+        {/* ── MIDDLE CONTENT ── */}
         <Box sx={{ px: 2.5, py: 2 }}>
 
           {/* 💬 AKILLI MESAJ BİLDİRİM PANELİ */}
@@ -311,7 +343,6 @@ const DashboardPage: React.FC = () => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                // Okunmadıysa mavi gradient, okunduysa soluk gri
                 background: item.isClientFeedbackRead 
                   ? '#f5f5f5' 
                   : 'linear-gradient(90deg, #e3f2fd 0%, #ede7f6 100%)',
@@ -320,7 +351,6 @@ const DashboardPage: React.FC = () => {
               }}
             >
               <Box display="flex" alignItems="center" gap={1.2}>
-                {/* 🔴 SADECE YENİ MESAJLARDA ÇIKAN YANIP SÖNEN KIRMIZI NOKTA */}
                 {!item.isClientFeedbackRead && (
                   <Box sx={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#f44336', animation: 'pulse 1.5s infinite', flexShrink: 0 }} />
                 )}
@@ -340,7 +370,6 @@ const DashboardPage: React.FC = () => {
                 </Typography>
               </Box>
 
-              {/* ⏱️ KAÇ DAKİKA ÖNCE GELDİ? */}
               <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 'bold', fontSize: '0.7rem' }}>
                 {timeSince(item.clientFeedbackDate)}
               </Typography>

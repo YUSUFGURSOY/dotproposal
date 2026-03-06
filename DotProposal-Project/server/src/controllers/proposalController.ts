@@ -207,3 +207,26 @@ export const markFeedbackAsRead = async (req: AuthRequest, res: Response): Promi
     res.status(500).json({ message: 'Sunucu hatası.' });
   }
 };
+// 8. YENİ: TEKLİF METNİNİ MANUEL DÜZENLEME (YAZILIMCI İÇİN)
+export const updateProposal = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { generatedCoverLetter } = req.body;
+    
+    // Yalnızca teklif sahibi bu teklifi güncelleyebilir
+    const proposal = await Proposal.findOneAndUpdate(
+      { _id: req.params.id, user: req.user._id },
+      { generatedCoverLetter },
+      { new: true } // Güncellenmiş dokümanı geri dön
+    );
+
+    if (!proposal) {
+      res.status(404).json({ message: 'Teklif bulunamadı veya yetkiniz yok.' });
+      return;
+    }
+
+    res.json({ message: 'Teklif başarıyla güncellendi!', proposal });
+  } catch (error: any) {
+    console.error("Teklif güncelleme hatası:", error);
+    res.status(500).json({ message: 'Sunucu hatası.' });
+  }
+};

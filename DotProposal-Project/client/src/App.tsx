@@ -625,19 +625,30 @@ function App() {
         autoHideDuration={3000}
       >
         <BrowserRouter>
-          {/* İçeriklerin üst ve alt kısmı esneyecek şekilde ayarlandı */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-            <Navbar />
-            <Box component="main" sx={{ flexGrow: 1 }}>
-              <AnimatedRoutes />
-            </Box>
-            {/* YENİ EKLENEN FOOTER */}
-            <Footer />
-          </Box>
+          <MainContent />
         </BrowserRouter>
       </SnackbarProvider>
     </ThemeProvider>
   );
 }
+
+// 👇 YENİ: Location'ı kullanabilmek için içeriği ayrı bir bileşene aldık
+const MainContent: React.FC = () => {
+  const location = useLocation();
+  // Eğer url'de "/view" varsa (Müşteri sayfasıysa), Navbar ve Footer'ı GİZLE
+  const isPublicPage = location.pathname.includes('/view/');
+
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      {!isPublicPage && <Navbar />}
+      
+      <Box component="main" sx={{ flexGrow: 1 }}>
+        <AnimatedRoutes />
+      </Box>
+      
+      {!isPublicPage && <Footer />}
+    </Box>
+  );
+};
 
 export default App;

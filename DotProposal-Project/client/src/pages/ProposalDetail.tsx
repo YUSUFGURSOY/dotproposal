@@ -6,35 +6,34 @@ import axios from 'axios';
 import ReactMarkdown from 'react-markdown';
 import html2pdf from 'html2pdf.js';
 import { 
-  Container, Paper, Typography, Button, Box, CircularProgress, Divider, Chip 
-} from '@mui/material';
+  Container, Paper, Typography, Button, Box, CircularProgress, Divider, Chip, TextField 
+} from '@mui/material'; // TextField eklendi
 import DownloadIcon from '@mui/icons-material/Download';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-// YENİ EKLENEN İKON VE STYLED IMPORTLARI
 import SettingsSuggestIcon from '@mui/icons-material/SettingsSuggest';
 import { styled, keyframes } from '@mui/material/styles';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import ForumIcon from '@mui/icons-material/Forum';
-// Backend'den gelen verinin tipi (aiInsights eklendi)
+import EditIcon from '@mui/icons-material/Edit'; // YENİ
+import SaveIcon from '@mui/icons-material/Save'; // YENİ
+
 interface Proposal {
   _id: string;
   jobTitle: string;
   companyName: string;
   generatedCoverLetter: string; 
   createdAt: string;
-  aiInsights?: string[]; // 👈 EKLENDİ
+  aiInsights?: string[];
   clientFeedback?: string;
   clientFeedbackDate?: string; 
   isClientFeedbackRead?: boolean;
 }
 
-// ─── STYLED COMPONENTS (Sitenin geneliyle uyumlu tasarım) ─────────────
 const fadeUp = keyframes`
   from { opacity: 0; transform: translateY(20px); }
   to   { opacity: 1; transform: translateY(0); }
 `;
 
-// Sayfanın ana arka planı (Mavi/Mor Gradyan)
 const PageWrapper = styled(Box)({
   minHeight: '100vh',
   background: 'linear-gradient(135deg, #6773d4 0%, #7e529d 100%)',
@@ -42,7 +41,6 @@ const PageWrapper = styled(Box)({
   paddingBottom: '80px',
 });
 
-// Cam Efektli Tavsiye Paneli
 const InsightCard = styled(Box)({
   background: 'rgba(255, 255, 255, 0.1)',
   backdropFilter: 'blur(12px)',
@@ -67,17 +65,22 @@ const ProposalDetail: React.FC = () => {
   const [proposal, setProposal] = useState<Proposal | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   
-  // PDF'e çevrilecek alanı seçmek için referans
+  // 👇 YENİ: DÜZENLEME MODU STATE'LERİ
+  const [isEditing, setIsEditing] = useState<boolean>(false);
+  const [editContent, setEditContent] = useState<string>('');
+  const [isSaving, setIsSaving] = useState<boolean>(false);
+  
   const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchProposal = async () => {
       try {
-        const token = localStorage.getItem('token'); // Token'ı al
+        const token = localStorage.getItem('token'); 
         const response = await axios.get(`http://localhost:5001/api/proposals/${id}`, {
-          headers: { Authorization: `Bearer ${token}` } // Yetkilendirme
+          headers: { Authorization: `Bearer ${token}` } 
         });
         setProposal(response.data);
+        setEditContent(response.data.generatedCoverLetter); // Editöre metni doldur
       } catch (error) {
         console.error("Teklif yüklenirken hata:", error);
       } finally {
@@ -85,9 +88,9 @@ const ProposalDetail: React.FC = () => {
       }
     };
     
-
     if (id) fetchProposal();
   }, [id]);
+
   useEffect(() => {
     if (proposal && proposal.clientFeedback && !proposal.isClientFeedbackRead) {
       const markAsRead = async () => {
@@ -104,7 +107,26 @@ const ProposalDetail: React.FC = () => {
     }
   }, [proposal]);
 
-  // PDF Oluşturma Fonksiyonu
+  // 👇 YENİ: TEKLİFİ VERİTABANINA KAYDETME FONKSİYONU
+  const handleSaveEdit = async () => {
+    setIsSaving(true);
+    try {
+      const token = localStorage.getItem('token');
+      await axios.put(`http://localhost:5001/api/proposals/${id}`,
+        { generatedCoverLetter: editContent },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setProposal({ ...proposal!, generatedCoverLetter: editContent });
+      setIsEditing(false);
+      alert('Teklif başarıyla güncellendi! Müşteriniz artık bu yeni hali görecek.');
+    } catch (error) {
+      alert('Güncelleme sırasında bir hata oluştu.');
+      console.error(error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleDownloadPDF = () => {
     const element = contentRef.current;
     if (!element) return;
@@ -119,9 +141,8 @@ const ProposalDetail: React.FC = () => {
 
     (html2pdf() as any).set(opt).from(element).save();
   };
-  // MÜŞTERİ LİNKİNİ KOPYALAMA FONKSİYONU
+
   const handleCopyLink = () => {
-    // Projenin çalıştığı ana adresi alır (Örn: http://localhost:5173) ve sonuna /view/id ekler
     const link = `${window.location.origin}/view/${proposal?._id}`;
     navigator.clipboard.writeText(link);
     alert('Müşteri linki kopyalandı! 🚀\n\nArtık bu linki müşterinize WhatsApp veya Mail üzerinden güvenle gönderebilirsiniz.');
@@ -131,16 +152,13 @@ const ProposalDetail: React.FC = () => {
   if (!proposal) return <Typography align="center" mt={5}>Teklif bulunamadı.</Typography>;
 
   return (
-    // 👈 ARKA PLAN PAGEWRAPPER İLE SARMALANDI
     <PageWrapper>
       <Container maxWidth="md" sx={{ py: 4 }}>
         
-        {/* Üst Butonlar (Renkleri arka plana uyumlu hale getirildi) */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
           <Button startIcon={<ArrowBackIcon />} variant="outlined" href="/dashboard" sx={{ color: 'white', borderColor: 'rgba(255,255,255,0.5)', '&:hover': { borderColor: 'white' } }}>
             Geri Dön
           </Button>
-          {/*KOPYALAMA BUTONU*/}
             <Button 
               variant="outlined" 
               startIcon={<ContentCopyIcon />} 
@@ -158,7 +176,7 @@ const ProposalDetail: React.FC = () => {
             PDF OLARAK İNDİR
           </Button>
         </Box>
-        {/* 💬 YENİ: MÜŞTERİDEN GELEN MESAJ PANELİ */}
+
         {proposal.clientFeedback && (
           <Paper elevation={4} sx={{ p: 3, mb: 4, borderRadius: 3, background: 'linear-gradient(to right, #e3f2fd, #bbdefb)', borderLeft: '6px solid #1976d2', animation: `${fadeUp} 0.5s ease both` }}>
             <Box display="flex" alignItems="center" gap={1.5} mb={1}>
@@ -172,7 +190,7 @@ const ProposalDetail: React.FC = () => {
             </Typography>
           </Paper>
         )}
-        {/* 🤖 AI STRATEJİK TAVSİYELER PANELİ (Müşteriye gitmeyecek kısım) */}
+
         {proposal.aiInsights && proposal.aiInsights.length > 0 && (
           <InsightCard>
             <Box display="flex" alignItems="center" gap={1.5} mb={2}>
@@ -194,38 +212,64 @@ const ProposalDetail: React.FC = () => {
           </InsightCard>
         )}
 
-        {/* PDF'e Dönüşecek Alan (Burası Bembeyaz ve Aynı Kaldı) */}
         <div ref={contentRef}>
           <Paper elevation={6} sx={{ p: 5, backgroundColor: '#ffffff', borderRadius: 2 }}>
             
-            {/* Başlık Kısmı */}
-            <Box sx={{ borderBottom: '2px solid #eee', pb: 2, mb: 3 }}>
-              <Typography variant="h4" component="h1" gutterBottom color="primary">
-                {proposal.jobTitle}
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                <Chip label={proposal.companyName} color="secondary" variant="outlined" />
-                <Typography variant="body2" color="textSecondary">
-                  Oluşturulma Tarihi: {new Date(proposal.createdAt).toLocaleDateString('tr-TR')}
+            <Box sx={{ borderBottom: '2px solid #eee', pb: 2, mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Box>
+                <Typography variant="h4" component="h1" gutterBottom color="primary">
+                  {proposal.jobTitle}
                 </Typography>
+                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                  <Chip label={proposal.companyName} color="secondary" variant="outlined" />
+                  <Typography variant="body2" color="textSecondary">
+                    Oluşturulma Tarihi: {new Date(proposal.createdAt).toLocaleDateString('tr-TR')}
+                  </Typography>
+                </Box>
+              </Box>
+              
+              {/* 👇 YENİ: DÜZENLEME BUTONU VE İPTAL/KAYDET MANTIĞI */}
+              <Box data-html2canvas-ignore>
+                {isEditing ? (
+                  <Box display="flex" gap={1}>
+                    <Button variant="outlined" color="error" onClick={() => { setIsEditing(false); setEditContent(proposal.generatedCoverLetter); }}>İptal</Button>
+                    <Button variant="contained" color="success" startIcon={isSaving ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />} onClick={handleSaveEdit} disabled={isSaving}>Kaydet</Button>
+                  </Box>
+                ) : (
+                  <Button variant="outlined" startIcon={<EditIcon />} onClick={() => setIsEditing(true)}>Metni Düzenle</Button>
+                )}
               </Box>
             </Box>
 
-            {/* Yapay Zeka İçeriği (Markdown Render) */}
+            {/* 👇 YENİ: DÜZENLEME MODU AÇIKSA TEXTFIELD, KAPALIYSA MARKDOWN */}
             <Box className="markdown-content">
-              <ReactMarkdown
-                  components={{
-                      h1: ({node, ...props}) => <Typography variant="h5" gutterBottom sx={{ mt: 3, color: '#1976d2', fontWeight: 'bold' }} {...props} />,
-                      h2: ({node, ...props}) => <Typography variant="h6" gutterBottom sx={{ mt: 2, borderBottom:'1px solid #ddd' }} {...props} />,
-                      p: ({node, ...props}) => <Typography variant="body1" paragraph sx={{ lineHeight: 1.8 }} {...props} />,
-                      li: ({node, ...props}) => <li style={{ marginBottom: '8px' }} {...props} />,
+              {isEditing ? (
+                <TextField
+                  fullWidth
+                  multiline
+                  minRows={15}
+                  value={editContent}
+                  onChange={(e) => setEditContent(e.target.value)}
+                  variant="outlined"
+                  sx={{ 
+                    '& .MuiInputBase-root': { fontFamily: 'monospace', fontSize: '0.95rem', lineHeight: 1.6 },
+                    bgcolor: '#fafafa'
                   }}
-              >
-                {proposal.generatedCoverLetter.replace(/\\n/g, '\n')}
-              </ReactMarkdown>
+                />
+              ) : (
+                <ReactMarkdown
+                    components={{
+                        h1: ({node, ...props}) => <Typography variant="h5" gutterBottom sx={{ mt: 3, color: '#1976d2', fontWeight: 'bold' }} {...props} />,
+                        h2: ({node, ...props}) => <Typography variant="h6" gutterBottom sx={{ mt: 2, borderBottom:'1px solid #ddd' }} {...props} />,
+                        p: ({node, ...props}) => <Typography variant="body1" paragraph sx={{ lineHeight: 1.8 }} {...props} />,
+                        li: ({node, ...props}) => <li style={{ marginBottom: '8px' }} {...props} />,
+                    }}
+                >
+                  {proposal.generatedCoverLetter.replace(/\\n/g, '\n')}
+                </ReactMarkdown>
+              )}
             </Box>
 
-            {/* Alt Bilgi */}
             <Divider sx={{ my: 4 }} />
             <Typography variant="caption" display="block" align="center" color="textSecondary">
               Bu teklif DotProposal Yapay Zeka sistemi tarafından otomatik oluşturulmuştur.
