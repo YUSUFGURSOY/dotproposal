@@ -11,13 +11,17 @@ export interface IProposal extends Document {
   tone: string;
   
   // ✅ YENİ EKLENEN ALANLAR (Sihirbazdaki kutucuklar ve fiyat için)
-  selectedFeatures: string[]; // Örn: ["SEO", "Mobil Uyum"]
-  hourlyRate?: string;        // Örn: "50"
-  selectedSections: string[]; // Örn: ["ozet", "takvim"]
+  selectedFeatures: string[];
+  hourlyRate?: string;        
+  selectedSections: string[]; 
   
   createdAt: Date;
   updatedAt: Date;
   aiInsights: string[];
+  
+  // 👇 BUNLAR BURADA DOĞRU, ELLERİNE SAĞLIK
+  isViewed: boolean;
+  viewedAt?: Date;
 }
 
 const proposalSchema = new Schema<IProposal>({
@@ -47,23 +51,30 @@ const proposalSchema = new Schema<IProposal>({
     default: 'Professional',
   },
   aiInsights: { 
-    type: [String], // Array of strings
+    type: [String], 
     default: [] 
   },
-  // ✅ YENİ ALANLARIN ŞEMALARI
   selectedFeatures: {
-    type: [String], // String Dizisi
+    type: [String], 
     default: []
   },
   hourlyRate: {
-    type: String,   // Opsiyonel
+    type: String,   
     default: ''
   },
   selectedSections: {
-    type: [String], // String Dizisi
+    type: [String], 
     default: []
   },
   
+  // 👇 İŞTE EKSİK OLAN KISIM BURASIYDI! BUNLARI ŞEMAYA EKLEDİK:
+  isViewed: { 
+    type: Boolean, 
+    default: false 
+  },
+  viewedAt: { 
+    type: Date 
+  }
 
 }, {
   timestamps: true

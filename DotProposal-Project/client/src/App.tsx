@@ -41,6 +41,7 @@ import RegisterPage from './pages/RegisterPage';
 import ProfilePage from './pages/ProfilePage';
 import DashboardPage from './pages/DashboardPage';
 import ProposalDetail from './pages/ProposalDetail';
+import PublicProposalPage from './pages/PublicProposalPage'; // İçe aktar
 
 // --- NAVBAR BİLEŞENİ ---
 const Navbar: React.FC = () => {
@@ -387,6 +388,7 @@ const AnimatedRoutes: React.FC = () => {
         <Route path="/profile" element={<PageTransition><ProfilePage /></PageTransition>} />
         <Route path="/proposal/:id" element={<PageTransition><ProposalDetail /></PageTransition>} />
         <Route path="/*" element={<PageTransition><NotFoundPage /></PageTransition>} />
+        <Route path="/view/:id" element={<PublicProposalPage />} />
       </Routes>
     </AnimatePresence>
   );

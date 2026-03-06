@@ -40,6 +40,8 @@ interface Proposal {
   tone: string;
   selectedFeatures?: string[];
   aiInsights?: string[];
+  isViewed?: boolean;
+  viewedAt?: string;
 }
 
 const DashboardPage: React.FC = () => {
@@ -253,26 +255,40 @@ const DashboardPage: React.FC = () => {
                 }}
               >
                 <CardContent>
-                  <Stack direction="row" justifyContent="space-between" alignItems="start" mb={2}>
-                    <Chip label={item.tone || 'Standart'} color="primary" size="small" />
-                    <Stack direction="row" alignItems="center" spacing={0.5} color="text.secondary">
-                      <EventIcon fontSize="small" />
-                      <Typography variant="caption">
-                        {item.createdAt ? new Date(item.createdAt).toLocaleDateString(i18n.language === 'en' ? 'en-US' : 'tr-TR') : '-'}
-                      </Typography>
-                    </Stack>
-                  </Stack>
+  {/* --- ÜST KISIM (Görüldü Rozeti Buraya Eklendi) --- */}
+  <Stack direction="row" justifyContent="space-between" alignItems="start" mb={2}>
+    <Box display="flex" gap={1}>
+      <Chip label={item.tone || 'Standart'} color="primary" size="small" />
+      
+      {/* 👀 EĞER MÜŞTERİ OKUDUYSA BU YEŞİL ROZET ÇIKACAK */}
+      {item.isViewed && (
+        <Chip 
+          label="Görüldü 👀" 
+          size="small" 
+          sx={{ background: 'rgba(76, 175, 80, 0.15)', color: '#4caf50', fontWeight: 'bold', border: '1px solid rgba(76, 175, 80, 0.3)' }} 
+        />
+      )}
+    </Box>
 
-                  <Typography variant="h6" fontWeight="bold" noWrap title={item.jobTitle} mb={1}>
-                    {item.jobTitle}
-                  </Typography>
+    <Stack direction="row" alignItems="center" spacing={0.5} color="text.secondary">
+      <EventIcon fontSize="small" />
+      <Typography variant="caption">
+        {item.createdAt ? new Date(item.createdAt).toLocaleDateString(i18n.language === 'en' ? 'en-US' : 'tr-TR') : '-'}
+      </Typography>
+    </Stack>
+  </Stack>
+  {/* --- ÜST KISIM BİTTİ --- */}
 
-                  <Stack direction="row" alignItems="center" spacing={1} mb={2} color="text.secondary">
-                    <BusinessIcon fontSize="small" />
-                    <Typography variant="body2" noWrap>
-                      {item.companyName}
-                    </Typography>
-                  </Stack>
+  <Typography variant="h6" fontWeight="bold" noWrap title={item.jobTitle} mb={1}>
+    {item.jobTitle}
+  </Typography>
+
+  <Stack direction="row" alignItems="center" spacing={1} mb={2} color="text.secondary">
+    <BusinessIcon fontSize="small" />
+    <Typography variant="body2" noWrap>
+      {item.companyName}
+    </Typography>
+  </Stack>
 
                   <Typography
                     variant="body2"

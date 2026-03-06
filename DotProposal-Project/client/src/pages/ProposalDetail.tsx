@@ -13,7 +13,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 // YENİ EKLENEN İKON VE STYLED IMPORTLARI
 import SettingsSuggestIcon from '@mui/icons-material/SettingsSuggest';
 import { styled, keyframes } from '@mui/material/styles';
-
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 // Backend'den gelen verinin tipi (aiInsights eklendi)
 interface Proposal {
   _id: string;
@@ -99,6 +99,13 @@ const ProposalDetail: React.FC = () => {
 
     (html2pdf() as any).set(opt).from(element).save();
   };
+  // MÜŞTERİ LİNKİNİ KOPYALAMA FONKSİYONU
+  const handleCopyLink = () => {
+    // Projenin çalıştığı ana adresi alır (Örn: http://localhost:5173) ve sonuna /view/id ekler
+    const link = `${window.location.origin}/view/${proposal?._id}`;
+    navigator.clipboard.writeText(link);
+    alert('Müşteri linki kopyalandı! 🚀\n\nArtık bu linki müşterinize WhatsApp veya Mail üzerinden güvenle gönderebilirsiniz.');
+  };
 
   if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 5 }}><CircularProgress /></Box>;
   if (!proposal) return <Typography align="center" mt={5}>Teklif bulunamadı.</Typography>;
@@ -113,6 +120,15 @@ const ProposalDetail: React.FC = () => {
           <Button startIcon={<ArrowBackIcon />} variant="outlined" href="/dashboard" sx={{ color: 'white', borderColor: 'rgba(255,255,255,0.5)', '&:hover': { borderColor: 'white' } }}>
             Geri Dön
           </Button>
+          {/*KOPYALAMA BUTONU*/}
+            <Button 
+              variant="outlined" 
+              startIcon={<ContentCopyIcon />} 
+              onClick={handleCopyLink}
+              sx={{ color: 'white', borderColor: 'rgba(255,255,255,0.5)', '&:hover': { borderColor: 'white', background: 'rgba(255,255,255,0.1)' } }}
+            >
+              LİNKİ KOPYALA
+            </Button>
           <Button 
             variant="contained" 
             startIcon={<DownloadIcon />} 

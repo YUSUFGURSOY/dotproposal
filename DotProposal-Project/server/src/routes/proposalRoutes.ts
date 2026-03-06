@@ -1,15 +1,17 @@
 import express from 'express';
-// 1. 'getProposalById' buraya eklendi
-import { createProposal, getMyProposals, getProposalById } from '../controllers/proposalController';
+// 1. 'getPublicProposalById' buraya eklendi
+import { createProposal, getMyProposals, getProposalById, getPublicProposalById } from '../controllers/proposalController';
 import { protect } from '../middleware/authMiddleware';
 
 const router = express.Router();
 
-// Tüm teklif rotaları korumalıdır (Giriş şart)
+// --- MÜŞTERİYE AÇIK ROTALAR (Giriş Şartı Yok) ---
+// Dikkat: Bu rotanın diğerleriyle karışmaması için '/public/:id' diyoruz
+router.get('/public/:id', getPublicProposalById);
+
+// --- YAZILIMCIYA ÖZEL KORUMALI ROTALAR (Giriş Şart) ---
 router.post('/', protect, createProposal); // Teklif oluştur
 router.get('/', protect, getMyProposals);  // Geçmiş teklifleri gör
-
-// 2. YENİ ROTA: Tek bir teklifin detayını ID ile getir
-router.get('/:id', protect, getProposalById);
+router.get('/:id', protect, getProposalById); // Tek bir teklifin detayını ID ile getir
 
 export default router;
