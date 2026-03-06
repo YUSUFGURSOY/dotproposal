@@ -10,6 +10,8 @@ export interface IProposal extends Document {
   companyName: string;
   tone: string;
   dealStatus: string;
+  clientFeedbackDate?: Date;   
+  isClientFeedbackRead?: boolean;
   
   // ✅ YENİ EKLENEN ALANLAR (Sihirbazdaki kutucuklar ve fiyat için)
   selectedFeatures: string[];
@@ -20,9 +22,10 @@ export interface IProposal extends Document {
   updatedAt: Date;
   aiInsights: string[];
   
-  // 👇 BUNLAR BURADA DOĞRU, ELLERİNE SAĞLIK
+  
   isViewed: boolean;
   viewedAt?: Date;
+  clientFeedback?: string;
 }
 
 const proposalSchema = new Schema<IProposal>({
@@ -80,7 +83,14 @@ const proposalSchema = new Schema<IProposal>({
     type: String,
     enum: ['Taslak', 'İletildi', 'Kabul Edildi', 'Reddedildi'],
     default: 'Taslak'
-  }
+  },clientFeedback: {
+    type: String,
+    default: ''
+  },clientFeedbackDate:
+   { type: Date },            
+  isClientFeedbackRead: 
+  { type: Boolean, default: false }
+
 
 }, {
   timestamps: true

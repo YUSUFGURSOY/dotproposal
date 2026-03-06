@@ -1,7 +1,7 @@
 // src/App.tsx
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
-import { AppBar, Toolbar, Typography, Button, Box, IconButton, Menu, MenuItem, Avatar, Divider, ThemeProvider, CssBaseline, ListItemIcon, ListItemText, alpha, Container, Grid, Stack, Link as MuiLink } from '@mui/material';
+import { AppBar, Toolbar, Typography, Button, Box, IconButton, Menu, MenuItem, Avatar, Divider, ThemeProvider, CssBaseline, ListItemIcon, ListItemText, alpha, Container, Grid, Stack, Link as MuiLink, Badge } from '@mui/material';
 import { useSelector, useDispatch } from 'react-redux';
 import { type RootState } from './app/store';
 import { logout } from './features/auth/authSlice';
@@ -31,6 +31,8 @@ import GitHubIcon from '@mui/icons-material/GitHub';
 import EmailIcon from '@mui/icons-material/Email';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 
+import axios from 'axios';
+
 import logo from './pictures/logo.png'; 
 
 import PageTransition from './components/PageTransition';
@@ -49,8 +51,30 @@ const Navbar: React.FC = () => {
   const { mode } = useSelector((state: RootState) => state.theme); 
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
   
   const { t, i18n } = useTranslation();
+
+  const [unreadCount, setUnreadCount] = useState<number>(0);
+
+  useEffect(() => {
+    const fetchUnreadMessages = async () => {
+      if (!isAuthenticated) return;
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        const response = await axios.get('http://localhost:5001/api/proposals', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const count = response.data.filter((p: { clientFeedback?: string; isClientFeedbackRead?: boolean }) => p.clientFeedback && p.clientFeedback.trim() !== '' && p.isClientFeedbackRead === false).length;
+        setUnreadCount(count);
+      } catch (error) {
+        console.error('Bildirimler çekilemedi:', error);
+      }
+    };
+    
+    fetchUnreadMessages();
+  }, [isAuthenticated, location.pathname]);
 
   const toggleLanguage = () => {
     const newLang = i18n.language === 'tr' ? 'en' : 'tr';
@@ -136,9 +160,16 @@ const Navbar: React.FC = () => {
         </Box>
       </MenuItem>
       <Divider sx={{ my: 1, borderColor: alpha('#808080', 0.1) }} />
-      <MenuItem component={Link} to="/dashboard" onClick={handleMenuClose}>
-        <ListItemIcon><DashboardIcon fontSize="small" /></ListItemIcon>
-        {t('nav.dashboard')}
+      <MenuItem component={Link} to="/dashboard" onClick={handleMenuClose} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <ListItemIcon><DashboardIcon fontSize="small" /></ListItemIcon>
+          {t('nav.dashboard')}
+        </Box>
+        {unreadCount > 0 && (
+          <Box sx={{ bgcolor: '#ff4d4f', color: 'white', px: 1, py: 0.2, borderRadius: 10, fontSize: '0.7rem', fontWeight: 'bold' }}>
+            {unreadCount} Yeni
+          </Box>
+        )}
       </MenuItem>
       <MenuItem component={Link} to="/profile" onClick={handleMenuClose}>
         <ListItemIcon><PersonIcon fontSize="small" /></ListItemIcon>
@@ -184,9 +215,20 @@ const Navbar: React.FC = () => {
             <ListItemIcon><CreateIcon fontSize="small" /></ListItemIcon>
             <ListItemText primary={t('nav.createProposal')} />
           </MenuItem>,
-          <MenuItem key="dashboard" component={Link} to="/dashboard" onClick={handleMobileMenuClose}>
-            <ListItemIcon><DashboardIcon fontSize="small" /></ListItemIcon>
-            <ListItemText primary={t('nav.dashboard')} />
+          <MenuItem key="dashboard" component={Link} to="/dashboard" onClick={handleMobileMenuClose} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <ListItemIcon>
+                <Badge color="error" variant="dot" invisible={unreadCount === 0}>
+                  <DashboardIcon fontSize="small" />
+                </Badge>
+              </ListItemIcon>
+              <ListItemText primary={t('nav.dashboard')} />
+            </Box>
+            {unreadCount > 0 && (
+              <Typography variant="caption" sx={{ color: '#ff4d4f', fontWeight: 'bold' }}>
+                {unreadCount} Yeni
+              </Typography>
+            )}
           </MenuItem>,
           <MenuItem key="profile" component={Link} to="/profile" onClick={handleMobileMenuClose}>
             <ListItemIcon><PersonIcon fontSize="small" /></ListItemIcon>
@@ -294,15 +336,17 @@ const Navbar: React.FC = () => {
 
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                   <IconButton size="small" onClick={handleProfileMenuOpen} sx={{ ml: 1, p: 0.5 }}>
-                    <Box sx={{ 
-                      p: '3px', borderRadius: '50%', 
-                      background: 'linear-gradient(135deg, #667eea, #764ba2)',
-                      boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)'
-                    }}>
-                      <Avatar sx={{ width: 36, height: 36, bgcolor: mode === 'dark' ? '#1a1a2e' : '#fff', color: mode === 'dark' ? '#fff' : '#1a1a2e', fontSize: '1rem', fontWeight: 800 }}>
-                        {user?.name.charAt(0).toUpperCase()}
-                      </Avatar>
-                    </Box>
+                    <Badge color="error" overlap="circular" badgeContent={unreadCount} invisible={unreadCount === 0}>
+                      <Box sx={{ 
+                        p: '3px', borderRadius: '50%', 
+                        background: 'linear-gradient(135deg, #667eea, #764ba2)',
+                        boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)'
+                      }}>
+                        <Avatar sx={{ width: 36, height: 36, bgcolor: mode === 'dark' ? '#1a1a2e' : '#fff', color: mode === 'dark' ? '#fff' : '#1a1a2e', fontSize: '1rem', fontWeight: 800 }}>
+                          {user?.name.charAt(0).toUpperCase()}
+                        </Avatar>
+                      </Box>
+                    </Badge>
                   </IconButton>
                 </motion.div>
               </>
@@ -362,7 +406,9 @@ const Navbar: React.FC = () => {
                 '&:hover': { bgcolor: alpha('#667eea', 0.2), color: '#667eea' }
               }}
             >
-              <MenuIcon />
+              <Badge color="error" variant="dot" invisible={unreadCount === 0}>
+                <MenuIcon />
+              </Badge>
             </IconButton>
           </Box>
 

@@ -150,3 +150,40 @@ export const updateDealStatus = async (req: AuthRequest, res: Response): Promise
     res.status(500).json({ message: 'Sunucu hatası.' });
   }
 };
+
+// 6. YENİ: MÜŞTERİDEN GELEN GERİ BİLDİRİMİ KAYDETME (AÇIK ROTA)
+export const addClientFeedback = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { feedback } = req.body;
+    const proposal = await Proposal.findById(req.params.id);
+
+    if (!proposal) {
+      res.status(404).json({ message: 'Teklif bulunamadı.' });
+      return;
+    }
+
+    // Müşteriden gelen mesajı veritabanına kaydet
+    proposal.clientFeedback = feedback;
+    proposal.clientFeedbackDate = new Date(); 
+    proposal.isClientFeedbackRead = false;
+    await proposal.save();
+
+    res.status(200).json({ message: 'Geri bildirim başarıyla iletildi.' });
+  } catch (error: any) {
+    console.error("Geri bildirim kaydetme hatası:", error);
+    res.status(500).json({ message: 'Sunucu hatası.' });
+  }
+};
+// 7. YENİ: MÜŞTERİ MESAJINI OTOMATİK OKUNDU YAP
+export const markFeedbackAsRead = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const proposal = await Proposal.findOneAndUpdate(
+      { _id: req.params.id, user: req.user._id },
+      { isClientFeedbackRead: true }, // 👈 Mesajı silmiyoruz, sadece okundu yapıyoruz
+      { new: true }
+    );
+    res.json({ message: 'Mesaj okundu olarak işaretlendi.' });
+  } catch (error: any) {
+    res.status(500).json({ message: 'Sunucu hatası.' });
+  }
+};

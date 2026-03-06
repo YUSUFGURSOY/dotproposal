@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import ReactMarkdown from 'react-markdown';
-import { Container, Paper, Typography, Box, CircularProgress, Divider, Chip } from '@mui/material';
+import { Container, Paper, Typography, Box, CircularProgress, Divider, Chip, TextField, Button } from '@mui/material';
 import { styled } from '@mui/material/styles';
 
 const PageWrapper = styled(Box)({
@@ -20,6 +20,23 @@ const PublicProposalPage: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
 
+  // Mesaj Kutusu State'leri
+  const [feedback, setFeedback] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
+
+  const handleFeedbackSubmit = async () => {
+    if (!feedback.trim()) return;
+    setIsSubmitting(true);
+    try {
+      await axios.post(`http://localhost:5001/api/proposals/public/${id}/feedback`, { feedback });
+      setIsSubmitted(true);
+    } catch (err) {
+      alert('Mesaj gönderilirken bir hata oluştu.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
   useEffect(() => {
     const fetchPublicProposal = async () => {
       try {
@@ -56,6 +73,7 @@ const PublicProposalPage: React.FC = () => {
             </Box>
           </Box>
 
+         {/* YAPAY ZEKA METNİ (Satır atlama sorunu çözüldü ve fazlalık temizlendi!) */}
           <Box className="markdown-content">
             <ReactMarkdown
               components={{
@@ -66,14 +84,51 @@ const PublicProposalPage: React.FC = () => {
                 strong: ({node, ...props}) => <strong style={{ color: '#1976d2' }} {...props} />
               }}
             >
-              {proposal.generatedCoverLetter}
+              {proposal.generatedCoverLetter.replace(/\\n/g, '\n')}
             </ReactMarkdown>
           </Box>
 
           <Divider sx={{ my: 5 }} />
-          <Typography variant="body2" align="center" color="textSecondary">
-            Bu doküman size özel olarak hazırlanmıştır.
-          </Typography>
+          
+          {/* 👇 YENİ: MÜŞTERİ MESAJ KUTUSU ALANI */}
+          {isSubmitted ? (
+            <Box textAlign="center" p={4} bgcolor="#e8f5e9" borderRadius={3} border="1px solid #c8e6c9">
+              <Typography variant="h6" color="success.main" fontWeight="bold" gutterBottom>
+                Mesajınız Başarıyla İletildi! 🎉
+              </Typography>
+              <Typography variant="body2" color="textSecondary">
+                Proje sahibi en kısa sürede size dönüş yapacaktır. Teklifi incelediğiniz için teşekkür ederiz.
+              </Typography>
+            </Box>
+          ) : (
+            <Box mt={4} bgcolor="#f8fafc" p={4} borderRadius={3} border="1px solid #e2e8f0">
+              <Typography variant="h6" gutterBottom color="#1e293b" fontWeight="bold">
+                Proje Hakkında Sorunuz mu Var?
+              </Typography>
+              <Typography variant="body2" color="textSecondary" mb={3}>
+                Bu teklifle ilgili düşüncelerinizi, revizyon taleplerinizi veya sorularınızı doğrudan yazılımcıya iletebilirsiniz.
+              </Typography>
+              
+              <TextField
+                fullWidth multiline rows={4} variant="outlined"
+                placeholder="Örn: Fiyat konusunda biraz daha esneklik sağlayabilir miyiz? veya Mobil uygulama kısmını detaylandırabilir misiniz?"
+                value={feedback}
+                onChange={(e) => setFeedback(e.target.value)}
+                sx={{ mb: 2, backgroundColor: 'white' }}
+              />
+              
+              <Box display="flex" justifyContent="flex-end">
+                <Button 
+                  variant="contained" size="large" onClick={handleFeedbackSubmit}
+                  disabled={isSubmitting || !feedback.trim()}
+                  sx={{ fontWeight: 'bold', px: 5, py: 1.5, background: 'linear-gradient(45deg, #1976d2, #1565c0)' }}
+                >
+                  {isSubmitting ? 'GÖNDERİLİYOR...' : 'MESAJI GÖNDER'}
+                </Button>
+              </Box>
+            </Box>
+          )}
+
         </Paper>
       </Container>
     </PageWrapper>

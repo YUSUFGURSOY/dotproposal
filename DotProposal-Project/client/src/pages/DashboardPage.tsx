@@ -2,8 +2,8 @@
 import React, { useEffect, useState } from 'react';
 import {
   Container, Typography, Card, CardContent, CardActions, Button, Box, Chip,
-  Divider, CircularProgress, Stack, Paper, Avatar, 
-  Select, MenuItem, FormControl // 👈 YENİ: Dropdown (Açılır menü) için eklendi
+  CircularProgress, Stack, Paper, Avatar, 
+  Select, MenuItem, FormControl
 } from '@mui/material';
 import { useSelector } from 'react-redux';
 import { type RootState } from '../app/store';
@@ -16,7 +16,8 @@ import BusinessIcon from '@mui/icons-material/Business';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
-import EmojiEventsIcon from '@mui/icons-material/EmojiEvents'; // 👈 YENİ: Kupa ikonu
+import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
+import ForumIcon from '@mui/icons-material/Forum';
 import axios from 'axios';
 import { useTranslation } from 'react-i18next';
 import { alpha } from '@mui/system';
@@ -32,8 +33,24 @@ interface Proposal {
   aiInsights?: string[];
   isViewed?: boolean;
   viewedAt?: string;
-  dealStatus?: string; // 👈 YENİ: Statü alanı
+  dealStatus?: string;
+  clientFeedback?: string;
+  clientFeedbackDate?: string; // 👈 HATA 1 BURADAN DÜZELTİLDİ
+  isClientFeedbackRead?: boolean; // 👈 HATA 1 BURADAN DÜZELTİLDİ
 }
+
+// Süre hesaplayıcı (Örn: "5 dk", "2 saat")
+const timeSince = (dateString?: string) => {
+  if (!dateString) return '';
+  const seconds = Math.floor((new Date().getTime() - new Date(dateString).getTime()) / 1000);
+  let interval = seconds / 86400;
+  if (interval > 1) return Math.floor(interval) + " gün";
+  interval = seconds / 3600;
+  if (interval > 1) return Math.floor(interval) + " saat";
+  interval = seconds / 60;
+  if (interval > 1) return Math.floor(interval) + " dk";
+  return "Az önce";
+};
 
 const DashboardPage: React.FC = () => {
   const { user } = useSelector((state: RootState) => state.auth);
@@ -68,10 +85,15 @@ const DashboardPage: React.FC = () => {
     fetchProposals();
   }, [navigate]);
 
+
+  // 👇 HATA 2 BURADAN DÜZELTİLDİ (Çift fonksiyon teke indirildi)
   const handleDelete = async (id: string) => {
     if (window.confirm(t('dashboard.deleteConfirm', 'Bu teklifi silmek istediğinize emin misiniz?'))) {
       try {
-        // Not: Gerçek silme API isteği buraya eklenebilir
+        const token = localStorage.getItem('token');
+        await axios.delete(`http://localhost:5001/api/proposals/${id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
         setProposals(proposals.filter((p) => p._id !== id));
       } catch (error) {
         console.error('Silme hatası:', error);
@@ -79,7 +101,6 @@ const DashboardPage: React.FC = () => {
     }
   };
 
-  // 👇 YENİ: STATÜ GÜNCELLEME FONKSİYONU
   const handleStatusChange = async (id: string, newStatus: string) => {
     try {
       const token = localStorage.getItem('token');
@@ -87,15 +108,12 @@ const DashboardPage: React.FC = () => {
         { dealStatus: newStatus },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      
-      // Arayüzü anında güncelle
       setProposals(proposals.map(p => p._id === id ? { ...p, dealStatus: newStatus } : p));
     } catch (error) {
       console.error('Statü güncellenirken hata oluştu:', error);
     }
   };
 
-  // 👇 YENİ: CRM İSTATİSTİKLERİNİ HESAPLAMA
   const acceptedCount = proposals.filter(p => p.dealStatus === 'Kabul Edildi').length;
   const rejectedCount = proposals.filter(p => p.dealStatus === 'Reddedildi').length;
   const totalResponded = acceptedCount + rejectedCount;
@@ -128,7 +146,7 @@ const DashboardPage: React.FC = () => {
           </Stack>
         </Paper>
 
-        {/* --- İSTATİSTİK KARTLARI (KAZANMA ORANI EKLENDİ) --- */}
+        {/* --- İSTATİSTİK KARTLARI --- */}
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr 1fr' }, gap: 3, mb: 5 }}>
           {[
             { label: 'Toplam Teklif', value: proposals.length, icon: <DescriptionIcon />, color: '#667eea' },
@@ -172,79 +190,238 @@ const DashboardPage: React.FC = () => {
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' }, gap: 3 }}>
             {proposals.map((item) => (
               <Card key={item._id} elevation={6} sx={{ borderRadius: 4, background: alpha('#fff', 0.95), backdropFilter: 'blur(10px)', transition: 'all 0.3s ease', '&:hover': { transform: 'translateY(-8px)', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' } }}>
-                <CardContent>
-                  
-                  {/* --- ÜST KISIM (Statü Dropdown ve Görüldü Rozeti) --- */}
-                  <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
-                    <Box display="flex" gap={1} alignItems="center">
-                      <FormControl size="small">
-                        <Select
-                          value={item.dealStatus || 'Taslak'}
-                          onChange={(e) => handleStatusChange(item._id, e.target.value as string)}
-                          sx={{
-                            height: 28, fontSize: '0.75rem', fontWeight: 'bold', borderRadius: 2,
-                            backgroundColor:
-                              item.dealStatus === 'Kabul Edildi' ? 'rgba(76, 175, 80, 0.1)' :
-                              item.dealStatus === 'Reddedildi' ? 'rgba(244, 67, 54, 0.1)' :
-                              item.dealStatus === 'İletildi' ? 'rgba(33, 150, 243, 0.1)' :
-                              'rgba(158, 158, 158, 0.15)',
-                            color:
-                              item.dealStatus === 'Kabul Edildi' ? '#2e7d32' :
-                              item.dealStatus === 'Reddedildi' ? '#c62828' :
-                              item.dealStatus === 'İletildi' ? '#1565c0' : '#616161',
-                            '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
-                          }}
-                        >
-                          <MenuItem value="Taslak" sx={{ fontSize: '0.85rem' }}>📝 Taslak</MenuItem>
-                          <MenuItem value="İletildi" sx={{ fontSize: '0.85rem' }}>🚀 İletildi</MenuItem>
-                          <MenuItem value="Kabul Edildi" sx={{ fontSize: '0.85rem', color: 'success.main', fontWeight: 'bold' }}>🎉 Kabul Edildi</MenuItem>
-                          <MenuItem value="Reddedildi" sx={{ fontSize: '0.85rem', color: 'error.main' }}>❌ Reddedildi</MenuItem>
-                        </Select>
-                      </FormControl>
+               <CardContent sx={{ p: 0, '&:last-child': { pb: 0 } }}>
 
-                      {item.isViewed && (
-                        <Chip label="Görüldü 👀" size="small" sx={{ background: 'rgba(76, 175, 80, 0.15)', color: '#4caf50', fontWeight: 'bold', border: '1px solid rgba(76, 175, 80, 0.3)' }} />
-                      )}
-                    </Box>
+  {/* ── TOP GRADIENT BAND ── */}
+  <Box
+    sx={{
+      px: 2.5,
+      pt: 2.5,
+      pb: 2,
+      background:
+        item.dealStatus === 'Kabul Edildi'
+          ? 'linear-gradient(135deg, rgba(46,125,50,0.08) 0%, rgba(76,175,80,0.04) 100%)'
+          : item.dealStatus === 'Reddedildi'
+          ? 'linear-gradient(135deg, rgba(198,40,40,0.08) 0%, rgba(244,67,54,0.04) 100%)'
+          : item.dealStatus === 'İletildi'
+          ? 'linear-gradient(135deg, rgba(21,101,192,0.08) 0%, rgba(33,150,243,0.04) 100%)'
+          : 'linear-gradient(135deg, rgba(97,97,97,0.06) 0%, rgba(158,158,158,0.02) 100%)',
+      borderBottom: '1px solid',
+      borderColor:
+        item.dealStatus === 'Kabul Edildi' ? 'rgba(76,175,80,0.12)' :
+        item.dealStatus === 'Reddedildi' ? 'rgba(244,67,54,0.12)' :
+        item.dealStatus === 'İletildi' ? 'rgba(33,150,243,0.12)' :
+        'rgba(0,0,0,0.05)',
+    }}
+  >
+    {/* Row 1: Status + Date */}
+    <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1.5}>
+      <FormControl size="small">
+        <Select
+          value={item.dealStatus || 'Taslak'}
+          onChange={(e) => handleStatusChange(item._id, e.target.value)}
+          sx={{
+            height: 26,
+            fontSize: '0.7rem',
+            fontWeight: 700,
+            borderRadius: '999px',
+            letterSpacing: '0.04em',
+            backgroundColor:
+              item.dealStatus === 'Kabul Edildi' ? 'rgba(76,175,80,0.15)' :
+              item.dealStatus === 'Reddedildi' ? 'rgba(244,67,54,0.12)' :
+              item.dealStatus === 'İletildi' ? 'rgba(33,150,243,0.12)' :
+              'rgba(0,0,0,0.06)',
+            color:
+              item.dealStatus === 'Kabul Edildi' ? '#2e7d32' :
+              item.dealStatus === 'Reddedildi' ? '#c62828' :
+              item.dealStatus === 'İletildi' ? '#1565c0' : '#616161',
+            '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
+            '& .MuiSelect-select': { py: 0, px: 1.5 },
+            '& .MuiSvgIcon-root': { fontSize: '0.9rem' },
+          }}
+        >
+          <MenuItem value="Taslak"    sx={{ fontSize: '0.82rem' }}>📝 Taslak</MenuItem>
+          <MenuItem value="İletildi"  sx={{ fontSize: '0.82rem' }}>🚀 İletildi</MenuItem>
+          <MenuItem value="Kabul Edildi" sx={{ fontSize: '0.82rem', color: 'success.main', fontWeight: 700 }}>🎉 Kabul Edildi</MenuItem>
+          <MenuItem value="Reddedildi"   sx={{ fontSize: '0.82rem', color: 'error.main' }}>❌ Reddedildi</MenuItem>
+        </Select>
+      </FormControl>
 
-                    <Stack direction="row" alignItems="center" spacing={0.5} color="text.secondary">
-                      <EventIcon fontSize="small" />
-                      <Typography variant="caption">
-                        {item.createdAt ? new Date(item.createdAt).toLocaleDateString(i18n.language === 'en' ? 'en-US' : 'tr-TR') : '-'}
-                      </Typography>
-                    </Stack>
-                  </Stack>
+      <Stack direction="row" alignItems="center" spacing={0.5}>
+        {item.isViewed && (
+          <Chip
+            label="👀 Görüldü"
+            size="small"
+            sx={{
+              height: 20,
+              fontSize: '0.65rem',
+              fontWeight: 700,
+              background: 'rgba(76,175,80,0.1)',
+              color: '#388e3c',
+              border: '1px solid rgba(76,175,80,0.25)',
+              borderRadius: '999px',
+              '& .MuiChip-label': { px: 1 },
+            }}
+          />
+        )}
+        <Stack direction="row" alignItems="center" spacing={0.4} color="text.disabled">
+          <EventIcon sx={{ fontSize: 13 }} />
+          <Typography sx={{ fontSize: '0.68rem', fontWeight: 500, letterSpacing: '0.02em' }}>
+            {item.createdAt
+              ? new Date(item.createdAt).toLocaleDateString(
+                  i18n.language === 'en' ? 'en-US' : 'tr-TR'
+                )
+              : '—'}
+          </Typography>
+        </Stack>
+      </Stack>
+    </Stack>
 
-                  <Typography variant="h6" fontWeight="bold" noWrap title={item.jobTitle} mb={1}>
-                    {item.jobTitle}
-                  </Typography>
+    {/* Job Title */}
+    <Typography
+      variant="h6"
+      fontWeight={800}
+      noWrap
+      title={item.jobTitle}
+      sx={{ fontSize: '1rem', lineHeight: 1.3, letterSpacing: '-0.01em', mb: 0.5 }}
+    >
+      {item.jobTitle}
+    </Typography>
 
-                  <Stack direction="row" alignItems="center" spacing={1} mb={2} color="text.secondary">
-                    <BusinessIcon fontSize="small" />
-                    <Typography variant="body2" noWrap>{item.companyName}</Typography>
-                  </Stack>
+    {/* Company */}
+    <Stack direction="row" alignItems="center" spacing={0.75} color="text.secondary">
+      <BusinessIcon sx={{ fontSize: 14 }} />
+      <Typography variant="body2" noWrap sx={{ fontSize: '0.78rem', fontWeight: 500 }}>
+        {item.companyName}
+      </Typography>
+    </Stack>
+  </Box>
 
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2, height: '40px', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                    {item.jobDescription || t('dashboard.noDesc', 'Açıklama yok')}
-                  </Typography>
+ {/* ── MIDDLE CONTENT ── */}
+        <Box sx={{ px: 2.5, py: 2 }}>
 
-                  <Divider sx={{ my: 2 }} />
+          {/* 💬 AKILLI MESAJ BİLDİRİM PANELİ */}
+          {item.clientFeedback && item.clientFeedback.trim() !== '' && (
+            <Box
+              sx={{
+                mb: 2,
+                px: 1.5,
+                py: 1.2,
+                borderRadius: 2,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                // Okunmadıysa mavi gradient, okunduysa soluk gri
+                background: item.isClientFeedbackRead 
+                  ? '#f5f5f5' 
+                  : 'linear-gradient(90deg, #e3f2fd 0%, #ede7f6 100%)',
+                borderLeft: `4px solid ${item.isClientFeedbackRead ? '#9e9e9e' : '#1976d2'}`,
+                boxShadow: item.isClientFeedbackRead ? 'none' : '0 2px 12px rgba(25,118,210,0.12)',
+              }}
+            >
+              <Box display="flex" alignItems="center" gap={1.2}>
+                {/* 🔴 SADECE YENİ MESAJLARDA ÇIKAN YANIP SÖNEN KIRMIZI NOKTA */}
+                {!item.isClientFeedbackRead && (
+                  <Box sx={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#f44336', animation: 'pulse 1.5s infinite', flexShrink: 0 }} />
+                )}
+                
+                <ForumIcon sx={{ color: item.isClientFeedbackRead ? '#9e9e9e' : '#1565c0', fontSize: 18, flexShrink: 0 }} />
+                
+                <Typography
+                  sx={{
+                    fontSize: '0.72rem',
+                    fontWeight: 800,
+                    color: item.isClientFeedbackRead ? '#757575' : '#0d47a1',
+                    letterSpacing: '0.06em',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  {item.isClientFeedbackRead ? 'Önceki Mesaj' : 'Müşteriden Yeni Mesaj'}
+                </Typography>
+              </Box>
 
-                  <Stack direction="row" justifyContent="space-between" alignItems="center">
-                    <Typography variant="body2" color="text.secondary">
-                      {item.selectedFeatures ? item.selectedFeatures.length : 0} {t('dashboard.items', 'Özellik')}
-                    </Typography>
-                    
-                    {item.aiInsights && item.aiInsights.length > 0 && (
-                      <Chip 
-                        icon={<AutoAwesomeIcon sx={{ color: '#A3ADF0 !important', fontSize: 16 }} />} 
-                        label={`${item.aiInsights.length} Gizli Tavsiye`} 
-                        size="small" 
-                        sx={{ background: 'rgba(108, 120, 214, 0.15)', color: '#A3ADF0', border: '1px solid rgba(108, 120, 214, 0.4)', fontWeight: 600, fontFamily: '"Sora", sans-serif' }} 
-                      />
-                    )}
-                  </Stack>
-                </CardContent>
+              {/* ⏱️ KAÇ DAKİKA ÖNCE GELDİ? */}
+              <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 'bold', fontSize: '0.7rem' }}>
+                {timeSince(item.clientFeedbackDate)}
+              </Typography>
+            </Box>
+          )}
+    {/* Description */}
+    <Typography
+      variant="body2"
+      color="text.secondary"
+      sx={{
+        fontSize: '0.78rem',
+        lineHeight: 1.65,
+        height: '52px',
+        overflow: 'hidden',
+        display: '-webkit-box',
+        WebkitLineClamp: 3,
+        WebkitBoxOrient: 'vertical',
+      }}
+    >
+      {item.jobDescription || t('dashboard.noDesc', 'Açıklama yok')}
+    </Typography>
+  </Box>
+
+  {/* ── BOTTOM FOOTER ── */}
+  <Box
+    sx={{
+      px: 2.5,
+      py: 1.5,
+      borderTop: '1px solid',
+      borderColor: 'divider',
+      background: 'rgba(0,0,0,0.018)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 1,
+    }}
+  >
+    {/* Feature count pill */}
+    <Box
+      sx={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 0.6,
+        px: 1.2,
+        py: 0.4,
+        borderRadius: '999px',
+        background: 'rgba(0,0,0,0.05)',
+        border: '1px solid rgba(0,0,0,0.07)',
+      }}
+    >
+      <Typography sx={{ fontSize: '0.68rem', fontWeight: 700, color: 'text.secondary' }}>
+        {item.selectedFeatures ? item.selectedFeatures.length : 0}
+      </Typography>
+      <Typography sx={{ fontSize: '0.68rem', color: 'text.disabled' }}>
+        {t('dashboard.items', 'Özellik')}
+      </Typography>
+    </Box>
+
+    {/* AI insights chip */}
+    {item.aiInsights && item.aiInsights.length > 0 && (
+      <Chip
+        icon={<AutoAwesomeIcon sx={{ color: '#A3ADF0 !important', fontSize: 13 }} />}
+        label={`${item.aiInsights.length} Gizli Tavsiye`}
+        size="small"
+        sx={{
+          height: 24,
+          fontSize: '0.68rem',
+          fontWeight: 700,
+          fontFamily: '"Sora", sans-serif',
+          background: 'linear-gradient(90deg, rgba(108,120,214,0.12), rgba(163,173,240,0.12))',
+          color: '#A3ADF0',
+          border: '1px solid rgba(108,120,214,0.3)',
+          borderRadius: '999px',
+          '& .MuiChip-label': { px: 1 },
+          '& .MuiChip-icon': { ml: 0.8 },
+        }}
+      />
+    )}
+  </Box>
+
+</CardContent>
 
                 <CardActions sx={{ justifyContent: 'space-between', px: 2, pb: 2 }}>
                   <Button size="small" variant="contained" startIcon={<VisibilityIcon />} onClick={() => navigate(`/proposal/${item._id}`)}>

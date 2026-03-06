@@ -14,6 +14,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SettingsSuggestIcon from '@mui/icons-material/SettingsSuggest';
 import { styled, keyframes } from '@mui/material/styles';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import ForumIcon from '@mui/icons-material/Forum';
 // Backend'den gelen verinin tipi (aiInsights eklendi)
 interface Proposal {
   _id: string;
@@ -22,6 +23,9 @@ interface Proposal {
   generatedCoverLetter: string; 
   createdAt: string;
   aiInsights?: string[]; // 👈 EKLENDİ
+  clientFeedback?: string;
+  clientFeedbackDate?: string; 
+  isClientFeedbackRead?: boolean;
 }
 
 // ─── STYLED COMPONENTS (Sitenin geneliyle uyumlu tasarım) ─────────────
@@ -80,9 +84,25 @@ const ProposalDetail: React.FC = () => {
         setLoading(false);
       }
     };
+    
 
     if (id) fetchProposal();
   }, [id]);
+  useEffect(() => {
+    if (proposal && proposal.clientFeedback && !proposal.isClientFeedbackRead) {
+      const markAsRead = async () => {
+        try {
+          const token = localStorage.getItem('token');
+          await axios.patch(`http://localhost:5001/api/proposals/${proposal._id}/read-feedback`, {}, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+        } catch (error) {
+          console.error("Otomatik okundu işaretlenemedi:", error);
+        }
+      };
+      markAsRead();
+    }
+  }, [proposal]);
 
   // PDF Oluşturma Fonksiyonu
   const handleDownloadPDF = () => {
@@ -138,7 +158,20 @@ const ProposalDetail: React.FC = () => {
             PDF OLARAK İNDİR
           </Button>
         </Box>
-
+        {/* 💬 YENİ: MÜŞTERİDEN GELEN MESAJ PANELİ */}
+        {proposal.clientFeedback && (
+          <Paper elevation={4} sx={{ p: 3, mb: 4, borderRadius: 3, background: 'linear-gradient(to right, #e3f2fd, #bbdefb)', borderLeft: '6px solid #1976d2', animation: `${fadeUp} 0.5s ease both` }}>
+            <Box display="flex" alignItems="center" gap={1.5} mb={1}>
+              <ForumIcon sx={{ color: '#1565c0' }} />
+              <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#1565c0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Müşteriden Yeni Mesaj Var!
+              </Typography>
+            </Box>
+            <Typography variant="body1" sx={{ color: '#0d47a1', fontStyle: 'italic', bgcolor: 'rgba(255,255,255,0.6)', p: 2, borderRadius: 2, mt: 1, fontWeight: 500 }}>
+              "{proposal.clientFeedback}"
+            </Typography>
+          </Paper>
+        )}
         {/* 🤖 AI STRATEJİK TAVSİYELER PANELİ (Müşteriye gitmeyecek kısım) */}
         {proposal.aiInsights && proposal.aiInsights.length > 0 && (
           <InsightCard>
@@ -188,7 +221,7 @@ const ProposalDetail: React.FC = () => {
                       li: ({node, ...props}) => <li style={{ marginBottom: '8px' }} {...props} />,
                   }}
               >
-                {proposal.generatedCoverLetter}
+                {proposal.generatedCoverLetter.replace(/\\n/g, '\n')}
               </ReactMarkdown>
             </Box>
 
