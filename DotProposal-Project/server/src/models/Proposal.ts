@@ -9,6 +9,7 @@ export interface IProposal extends Document {
   generatedCoverLetter: string;
   companyName: string;
   tone: string;
+  dealStatus: string;
   
   // ✅ YENİ EKLENEN ALANLAR (Sihirbazdaki kutucuklar ve fiyat için)
   selectedFeatures: string[];
@@ -74,6 +75,11 @@ const proposalSchema = new Schema<IProposal>({
   },
   viewedAt: { 
     type: Date 
+  },
+  dealStatus: {
+    type: String,
+    enum: ['Taslak', 'İletildi', 'Kabul Edildi', 'Reddedildi'],
+    default: 'Taslak'
   }
 
 }, {

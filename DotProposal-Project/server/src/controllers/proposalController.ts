@@ -120,3 +120,33 @@ export const getPublicProposalById = async (req: Request, res: Response): Promis
     res.status(500).json({ message: 'Sunucu hatası.' });
   }
 };
+// 5. YENİ: ANLAŞMA DURUMUNU (MİNİ-CRM) GÜNCELLEME
+export const updateDealStatus = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { dealStatus } = req.body;
+    
+    // Güvenlik: Sadece geçerli statüleri kabul et
+    const validStatuses = ['Taslak', 'İletildi', 'Kabul Edildi', 'Reddedildi'];
+    if (!validStatuses.includes(dealStatus)) {
+      res.status(400).json({ message: 'Geçersiz statü.' });
+      return;
+    }
+
+    // Teklifi bul ve sadece dealStatus'u güncelle
+    const proposal = await Proposal.findOneAndUpdate(
+      { _id: req.params.id, user: req.user._id }, // Başkasının teklifini değiştiremesin
+      { dealStatus },
+      { new: true }
+    );
+
+    if (!proposal) {
+      res.status(404).json({ message: 'Teklif bulunamadı.' });
+      return;
+    }
+
+    res.json(proposal);
+  } catch (error: any) {
+    console.error("Statü güncelleme hatası:", error);
+    res.status(500).json({ message: 'Sunucu hatası.' });
+  }
+};

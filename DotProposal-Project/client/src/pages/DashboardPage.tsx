@@ -1,20 +1,9 @@
-
 // src/pages/DashboardPage.tsx
 import React, { useEffect, useState } from 'react';
 import {
-  Container,
-  Typography,
-  Card,
-  CardContent,
-  CardActions,
-  Button,
-  Box,
-  Chip,
-  Divider,
-  CircularProgress,
-  Stack,
-  Paper,
-  Avatar,
+  Container, Typography, Card, CardContent, CardActions, Button, Box, Chip,
+  Divider, CircularProgress, Stack, Paper, Avatar, 
+  Select, MenuItem, FormControl // 👈 YENİ: Dropdown (Açılır menü) için eklendi
 } from '@mui/material';
 import { useSelector } from 'react-redux';
 import { type RootState } from '../app/store';
@@ -27,9 +16,10 @@ import BusinessIcon from '@mui/icons-material/Business';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import EmojiEventsIcon from '@mui/icons-material/EmojiEvents'; // 👈 YENİ: Kupa ikonu
 import axios from 'axios';
 import { useTranslation } from 'react-i18next';
-import {alpha } from '@mui/system';
+import { alpha } from '@mui/system';
 
 interface Proposal {
   _id: string;
@@ -42,6 +32,7 @@ interface Proposal {
   aiInsights?: string[];
   isViewed?: boolean;
   viewedAt?: string;
+  dealStatus?: string; // 👈 YENİ: Statü alanı
 }
 
 const DashboardPage: React.FC = () => {
@@ -51,8 +42,6 @@ const DashboardPage: React.FC = () => {
 
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-
- 
 
   const gradientBg = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
 
@@ -82,6 +71,7 @@ const DashboardPage: React.FC = () => {
   const handleDelete = async (id: string) => {
     if (window.confirm(t('dashboard.deleteConfirm', 'Bu teklifi silmek istediğinize emin misiniz?'))) {
       try {
+        // Not: Gerçek silme API isteği buraya eklenebilir
         setProposals(proposals.filter((p) => p._id !== id));
       } catch (error) {
         console.error('Silme hatası:', error);
@@ -89,42 +79,34 @@ const DashboardPage: React.FC = () => {
     }
   };
 
+  // 👇 YENİ: STATÜ GÜNCELLEME FONKSİYONU
+  const handleStatusChange = async (id: string, newStatus: string) => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.patch(`http://localhost:5001/api/proposals/${id}/status`, 
+        { dealStatus: newStatus },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      // Arayüzü anında güncelle
+      setProposals(proposals.map(p => p._id === id ? { ...p, dealStatus: newStatus } : p));
+    } catch (error) {
+      console.error('Statü güncellenirken hata oluştu:', error);
+    }
+  };
+
+  // 👇 YENİ: CRM İSTATİSTİKLERİNİ HESAPLAMA
+  const acceptedCount = proposals.filter(p => p.dealStatus === 'Kabul Edildi').length;
+  const rejectedCount = proposals.filter(p => p.dealStatus === 'Reddedildi').length;
+  const totalResponded = acceptedCount + rejectedCount;
+  const winRate = totalResponded > 0 ? Math.round((acceptedCount / totalResponded) * 100) : 0;
+
   return (
-    <Box
-      sx={{
-        background: gradientBg,
-        minHeight: '100vh',
-        py: 8,
-      }}
-    >
+    <Box sx={{ background: gradientBg, minHeight: '100vh', py: 8 }}>
       <Container maxWidth="lg">
         {/* --- HEADER BANNER --- */}
-        <Paper
-          elevation={8}
-          sx={{
-            p: 5,
-            mb: 5,
-            borderRadius: 5,
-            background: alpha('#fff', 0.15),
-            backdropFilter: 'blur(20px)',
-            color: 'white',
-            position: 'relative',
-            overflow: 'hidden',
-          }}
-        >
-          <Box
-            sx={{
-              position: 'absolute',
-              top: -50,
-              right: -50,
-              width: 200,
-              height: 200,
-              borderRadius: '50%',
-              background: 'rgba(255,255,255,0.1)',
-              filter: 'blur(40px)',
-            }}
-          />
-
+        <Paper elevation={8} sx={{ p: 5, mb: 5, borderRadius: 5, background: alpha('#fff', 0.15), backdropFilter: 'blur(20px)', color: 'white', position: 'relative', overflow: 'hidden' }}>
+          <Box sx={{ position: 'absolute', top: -50, right: -50, width: 200, height: 200, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', filter: 'blur(40px)' }} />
           <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems="center" spacing={3}>
             <Box sx={{ position: 'relative', zIndex: 1 }}>
               <Typography variant="h3" fontWeight="900" gutterBottom>
@@ -137,56 +119,26 @@ const DashboardPage: React.FC = () => {
                 {t('dashboard.totalProposals', 'Toplam {{count}} teklifiniz var.', { count: proposals.length })}
               </Typography>
             </Box>
-
             <Button
-              variant="contained"
-              size="large"
-              startIcon={<AddIcon />}
-              onClick={() => navigate('/wizard')}
-              sx={{
-                px: 5,
-                py: 2,
-                fontWeight: 'bold',
-                borderRadius: 3,
-                fontSize: '1.1rem',
-                background: 'linear-gradient(45deg,#ffd54f,#ff8a65)',
-                color: 'white',
-                boxShadow: '0 10px 25px rgba(255,213,79,0.4)',
-                '&:hover': {
-                  transform: 'translateY(-2px)',
-                  boxShadow: '0 15px 35px rgba(255,213,79,0.6)',
-                },
-              }}
+              variant="contained" size="large" startIcon={<AddIcon />} onClick={() => navigate('/wizard')}
+              sx={{ px: 5, py: 2, fontWeight: 'bold', borderRadius: 3, fontSize: '1.1rem', background: 'linear-gradient(45deg,#ffd54f,#ff8a65)', color: 'white', boxShadow: '0 10px 25px rgba(255,213,79,0.4)', '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 15px 35px rgba(255,213,79,0.6)' } }}
             >
               {t('nav.createProposal', 'Yeni Teklif Oluştur')}
             </Button>
           </Stack>
         </Paper>
 
-        {/* --- İSTATİSTİK KARTLARI --- */}
-        <Box sx={{ display: 'flex', gap: 3, mb: 5, flexWrap: 'wrap' }}>
+        {/* --- İSTATİSTİK KARTLARI (KAZANMA ORANI EKLENDİ) --- */}
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr 1fr' }, gap: 3, mb: 5 }}>
           {[
             { label: 'Toplam Teklif', value: proposals.length, icon: <DescriptionIcon />, color: '#667eea' },
             { label: 'Bu Ay', value: proposals.filter((p) => new Date(p.createdAt).getMonth() === new Date().getMonth()).length, icon: <TrendingUpIcon />, color: '#4ecdc4' },
-            { label: 'AI Destekli', value: proposals.length, icon: <AutoAwesomeIcon />, color: '#ff6b6b' },
+            { label: 'Kabul Edilen', value: acceptedCount, icon: <AutoAwesomeIcon />, color: '#ff6b6b' },
+            { label: 'Kazanma Oranı', value: `%${winRate}`, icon: <EmojiEventsIcon />, color: '#ffb300' }, 
           ].map((stat, index) => (
             <Paper
-              key={index}
-              elevation={4}
-              sx={{
-                flex: 1,
-                minWidth: 200,
-                p: 3,
-                borderRadius: 4,
-                background: alpha('#fff', 0.95),
-                backdropFilter: 'blur(10px)',
-                border: `1px solid ${alpha(stat.color, 0.2)}`,
-                transition: 'all 0.3s ease',
-                '&:hover': {
-                  transform: 'translateY(-5px)',
-                  boxShadow: `0 15px 35px ${alpha(stat.color, 0.3)}`,
-                },
-              }}
+              key={index} elevation={4}
+              sx={{ p: 3, borderRadius: 4, background: alpha('#fff', 0.95), backdropFilter: 'blur(10px)', border: `1px solid ${alpha(stat.color, 0.2)}`, transition: 'all 0.3s ease', '&:hover': { transform: 'translateY(-5px)', boxShadow: `0 15px 35px ${alpha(stat.color, 0.3)}` } }}
             >
               <Stack direction="row" alignItems="center" spacing={2}>
                 <Avatar sx={{ bgcolor: `${stat.color}20`, color: stat.color, width: 50, height: 50 }}>
@@ -211,128 +163,87 @@ const DashboardPage: React.FC = () => {
             <CircularProgress sx={{ color: 'white' }} size={60} />
           </Box>
         ) : proposals.length === 0 ? (
-          <Paper
-            elevation={6}
-            sx={{
-              textAlign: 'center',
-              py: 10,
-              px: 4,
-              borderRadius: 5,
-              background: alpha('#fff', 0.1),
-              backdropFilter: 'blur(10px)',
-              border: '2px dashed rgba(255,255,255,0.3)',
-              color: 'white',
-            }}
-          >
+          <Paper elevation={6} sx={{ textAlign: 'center', py: 10, px: 4, borderRadius: 5, background: alpha('#fff', 0.1), backdropFilter: 'blur(10px)', border: '2px dashed rgba(255,255,255,0.3)', color: 'white' }}>
             <DescriptionIcon sx={{ fontSize: 80, mb: 3, opacity: 0.5 }} />
-            <Typography variant="h5" fontWeight="bold" gutterBottom>
-              {t('dashboard.noProposals', 'Henüz oluşturulmuş bir teklifiniz yok.')}
-            </Typography>
-            <Button
-              variant="outlined"
-              size="large"
-              onClick={() => navigate('/wizard')}
-              sx={{ mt: 3, color: 'white', borderColor: 'white' }}
-            >
-              {t('dashboard.createFirst', 'İlk teklifini şimdi oluştur!')}
-            </Button>
+            <Typography variant="h5" fontWeight="bold" gutterBottom>{t('dashboard.noProposals', 'Henüz oluşturulmuş bir teklifiniz yok.')}</Typography>
+            <Button variant="outlined" size="large" onClick={() => navigate('/wizard')} sx={{ mt: 3, color: 'white', borderColor: 'white' }}>{t('dashboard.createFirst', 'İlk teklifini şimdi oluştur!')}</Button>
           </Paper>
         ) : (
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' }, gap: 3 }}>
             {proposals.map((item) => (
-              <Card
-                key={item._id}
-                elevation={6}
-                sx={{
-                  borderRadius: 4,
-                  background: alpha('#fff', 0.95),
-                  backdropFilter: 'blur(10px)',
-                  transition: 'all 0.3s ease',
-                  '&:hover': {
-                    transform: 'translateY(-8px)',
-                    boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
-                  },
-                }}
-              >
+              <Card key={item._id} elevation={6} sx={{ borderRadius: 4, background: alpha('#fff', 0.95), backdropFilter: 'blur(10px)', transition: 'all 0.3s ease', '&:hover': { transform: 'translateY(-8px)', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' } }}>
                 <CardContent>
-  {/* --- ÜST KISIM (Görüldü Rozeti Buraya Eklendi) --- */}
-  <Stack direction="row" justifyContent="space-between" alignItems="start" mb={2}>
-    <Box display="flex" gap={1}>
-      <Chip label={item.tone || 'Standart'} color="primary" size="small" />
-      
-      {/* 👀 EĞER MÜŞTERİ OKUDUYSA BU YEŞİL ROZET ÇIKACAK */}
-      {item.isViewed && (
-        <Chip 
-          label="Görüldü 👀" 
-          size="small" 
-          sx={{ background: 'rgba(76, 175, 80, 0.15)', color: '#4caf50', fontWeight: 'bold', border: '1px solid rgba(76, 175, 80, 0.3)' }} 
-        />
-      )}
-    </Box>
+                  
+                  {/* --- ÜST KISIM (Statü Dropdown ve Görüldü Rozeti) --- */}
+                  <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
+                    <Box display="flex" gap={1} alignItems="center">
+                      <FormControl size="small">
+                        <Select
+                          value={item.dealStatus || 'Taslak'}
+                          onChange={(e) => handleStatusChange(item._id, e.target.value as string)}
+                          sx={{
+                            height: 28, fontSize: '0.75rem', fontWeight: 'bold', borderRadius: 2,
+                            backgroundColor:
+                              item.dealStatus === 'Kabul Edildi' ? 'rgba(76, 175, 80, 0.1)' :
+                              item.dealStatus === 'Reddedildi' ? 'rgba(244, 67, 54, 0.1)' :
+                              item.dealStatus === 'İletildi' ? 'rgba(33, 150, 243, 0.1)' :
+                              'rgba(158, 158, 158, 0.15)',
+                            color:
+                              item.dealStatus === 'Kabul Edildi' ? '#2e7d32' :
+                              item.dealStatus === 'Reddedildi' ? '#c62828' :
+                              item.dealStatus === 'İletildi' ? '#1565c0' : '#616161',
+                            '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
+                          }}
+                        >
+                          <MenuItem value="Taslak" sx={{ fontSize: '0.85rem' }}>📝 Taslak</MenuItem>
+                          <MenuItem value="İletildi" sx={{ fontSize: '0.85rem' }}>🚀 İletildi</MenuItem>
+                          <MenuItem value="Kabul Edildi" sx={{ fontSize: '0.85rem', color: 'success.main', fontWeight: 'bold' }}>🎉 Kabul Edildi</MenuItem>
+                          <MenuItem value="Reddedildi" sx={{ fontSize: '0.85rem', color: 'error.main' }}>❌ Reddedildi</MenuItem>
+                        </Select>
+                      </FormControl>
 
-    <Stack direction="row" alignItems="center" spacing={0.5} color="text.secondary">
-      <EventIcon fontSize="small" />
-      <Typography variant="caption">
-        {item.createdAt ? new Date(item.createdAt).toLocaleDateString(i18n.language === 'en' ? 'en-US' : 'tr-TR') : '-'}
-      </Typography>
-    </Stack>
-  </Stack>
-  {/* --- ÜST KISIM BİTTİ --- */}
+                      {item.isViewed && (
+                        <Chip label="Görüldü 👀" size="small" sx={{ background: 'rgba(76, 175, 80, 0.15)', color: '#4caf50', fontWeight: 'bold', border: '1px solid rgba(76, 175, 80, 0.3)' }} />
+                      )}
+                    </Box>
 
-  <Typography variant="h6" fontWeight="bold" noWrap title={item.jobTitle} mb={1}>
-    {item.jobTitle}
-  </Typography>
+                    <Stack direction="row" alignItems="center" spacing={0.5} color="text.secondary">
+                      <EventIcon fontSize="small" />
+                      <Typography variant="caption">
+                        {item.createdAt ? new Date(item.createdAt).toLocaleDateString(i18n.language === 'en' ? 'en-US' : 'tr-TR') : '-'}
+                      </Typography>
+                    </Stack>
+                  </Stack>
 
-  <Stack direction="row" alignItems="center" spacing={1} mb={2} color="text.secondary">
-    <BusinessIcon fontSize="small" />
-    <Typography variant="body2" noWrap>
-      {item.companyName}
-    </Typography>
-  </Stack>
+                  <Typography variant="h6" fontWeight="bold" noWrap title={item.jobTitle} mb={1}>
+                    {item.jobTitle}
+                  </Typography>
 
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    sx={{
-                      mb: 2,
-                      height: '40px',
-                      overflow: 'hidden',
-                      display: '-webkit-box',
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical',
-                    }}
-                  >
+                  <Stack direction="row" alignItems="center" spacing={1} mb={2} color="text.secondary">
+                    <BusinessIcon fontSize="small" />
+                    <Typography variant="body2" noWrap>{item.companyName}</Typography>
+                  </Stack>
+
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2, height: '40px', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
                     {item.jobDescription || t('dashboard.noDesc', 'Açıklama yok')}
                   </Typography>
 
                   <Divider sx={{ my: 2 }} />
 
-                  
-
-                  {/* ÖZELLİKLER VE AI ROZETİ YAN YANA */}
                   <Stack direction="row" justifyContent="space-between" alignItems="center">
                     <Typography variant="body2" color="text.secondary">
                       {item.selectedFeatures ? item.selectedFeatures.length : 0} {t('dashboard.items', 'Özellik')}
                     </Typography>
                     
-                    {/* 🤖 ŞIK AI TAVSİYE ROZETİ */}
                     {item.aiInsights && item.aiInsights.length > 0 && (
                       <Chip 
                         icon={<AutoAwesomeIcon sx={{ color: '#A3ADF0 !important', fontSize: 16 }} />} 
                         label={`${item.aiInsights.length} Gizli Tavsiye`} 
                         size="small" 
-                        sx={{ 
-                          background: 'rgba(108, 120, 214, 0.15)', 
-                          color: '#A3ADF0', 
-                          border: '1px solid rgba(108, 120, 214, 0.4)',
-                          fontWeight: 600,
-                          fontFamily: '"Sora", sans-serif'
-                        }} 
+                        sx={{ background: 'rgba(108, 120, 214, 0.15)', color: '#A3ADF0', border: '1px solid rgba(108, 120, 214, 0.4)', fontWeight: 600, fontFamily: '"Sora", sans-serif' }} 
                       />
                     )}
                   </Stack>
-
-                
                 </CardContent>
 
                 <CardActions sx={{ justifyContent: 'space-between', px: 2, pb: 2 }}>
