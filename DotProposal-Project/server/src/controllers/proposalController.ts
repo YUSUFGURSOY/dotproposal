@@ -7,6 +7,9 @@ import { getChannel } from '../config/rabbitmq';
 import Proposal from '../models/Proposal';       
 import User from '../models/User'; 
 import { sendEmail } from '../utils/sendEmail'; // Mail aracımızı çağırdık
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import dotenv from 'dotenv'; 
+dotenv.config();
 // 1. TEKLİF OLUŞTURMA FONKSİYONU 
 export const createProposal = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
@@ -227,6 +230,82 @@ export const updateProposal = async (req: AuthRequest, res: Response): Promise<v
     res.json({ message: 'Teklif başarıyla güncellendi!', proposal });
   } catch (error: any) {
     console.error("Teklif güncelleme hatası:", error);
+    res.status(500).json({ message: 'Sunucu hatası.' });
+  }
+};
+
+// 9. YENİ: YAPAY ZEKA İLE METİN İYİLEŞTİRME (SİHİRLİ DEĞNEK)
+export const enhanceProposalText = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { text, instruction } = req.body;
+    
+    if (!text) {
+      res.status(400).json({ message: 'Lütfen düzenlenecek bir metin sağlayın.' });
+      return;
+    }
+
+    // Gemini API'yi başlatıyoruz
+    const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || '');
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+    // Kullanıcının seçtiği komuta göre yapay zekaya prompt (talimat) veriyoruz
+    let prompt = "";
+    if (instruction === 'professional') {
+      prompt = "Aşağıdaki teklif metnini daha profesyonel, kurumsal ve ikna edici bir dille yeniden yaz:\n\n" + text;
+    } else if (instruction === 'shorter') {
+      prompt = "Aşağıdaki teklif metnini anlamını kaybetmeden, daha kısa, öz ve vurucu bir şekilde özetleyerek yeniden yaz:\n\n" + text;
+    } else if (instruction === 'grammar') {
+      prompt = "Aşağıdaki teklif metninin hiçbir anlamını veya cümlesini değiştirmeden, sadece yazım hatalarını ve dilbilgisi bozukluklarını düzelt:\n\n" + text;
+    } else {
+      prompt = `Aşağıdaki teklif metnini sana verilen özel talimata göre yeniden yaz.\n\nÖzel Talimat: "${instruction}"\n\nTeklif Metni:\n${text}`;
+    }
+
+    const result = await model.generateContent(prompt);
+    const responseText = result.response.text();
+
+    res.json({ enhancedText: responseText });
+  } catch (error: any) {
+    console.error("Yapay Zeka İyileştirme Hatası:", error);
+    res.status(500).json({ message: 'Yapay zeka ile iletişim kurulamadı.' });
+  }
+};
+// 10. YENİ: TEKLİFİ VERİTABANINDAN KALICI OLARAK SİLME
+export const deleteProposal = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    // Sadece teklifin sahibi (user) silebilir
+    const proposal = await Proposal.findOneAndDelete({
+      _id: req.params.id,
+      user: req.user._id 
+    });
+
+    if (!proposal) {
+      res.status(404).json({ message: 'Teklif bulunamadı veya silmeye yetkiniz yok.' });
+      return;
+    }
+
+    res.json({ message: 'Teklif veritabanından başarıyla silindi.' });
+  } catch (error: any) {
+    console.error("Silme işlemi hatası:", error);
+    res.status(500).json({ message: 'Sunucu hatası.' });
+  }
+};
+// 11. YENİ: TEKLİFİ SABİTLEME (RAPTİYE)
+export const togglePinProposal = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const proposal = await Proposal.findOne({ _id: req.params.id, user: req.user._id });
+    
+    if (!proposal) {
+      res.status(404).json({ message: 'Teklif bulunamadı.' });
+      return;
+    }
+
+    // Mevcut durumun tam tersine çevir (True ise False, False ise True yap)
+    proposal.isPinned = !proposal.isPinned;
+    await proposal.save();
+
+    res.json({ message: 'Sabitleme durumu güncellendi.', isPinned: proposal.isPinned });
+  } catch (error: any) {
+    console.error("Sabitleme hatası:", error);
     res.status(500).json({ message: 'Sunucu hatası.' });
   }
 };

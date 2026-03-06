@@ -6,16 +6,24 @@ import axios from 'axios';
 import ReactMarkdown from 'react-markdown';
 import html2pdf from 'html2pdf.js';
 import { 
-  Container, Paper, Typography, Button, Box, CircularProgress, Divider, Chip, TextField 
-} from '@mui/material'; // TextField eklendi
+  Container, Paper, Typography, Button, Box, CircularProgress, Divider, Chip, TextField,
+  Menu, MenuItem, ListItemIcon, ListItemText,
+  Dialog, DialogTitle, DialogContent, DialogActions // 👇 YENİ: Pop-up için eklendi
+} from '@mui/material'; 
 import DownloadIcon from '@mui/icons-material/Download';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SettingsSuggestIcon from '@mui/icons-material/SettingsSuggest';
 import { styled, keyframes } from '@mui/material/styles';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import ForumIcon from '@mui/icons-material/Forum';
-import EditIcon from '@mui/icons-material/Edit'; // YENİ
-import SaveIcon from '@mui/icons-material/Save'; // YENİ
+import EditIcon from '@mui/icons-material/Edit'; 
+import SaveIcon from '@mui/icons-material/Save'; 
+
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import BusinessCenterIcon from '@mui/icons-material/BusinessCenter';
+import ShortTextIcon from '@mui/icons-material/ShortText';
+import SpellcheckIcon from '@mui/icons-material/Spellcheck';
+import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh'; // 👇 YENİ: Özel Talimat İkonu
 
 interface Proposal {
   _id: string;
@@ -65,11 +73,18 @@ const ProposalDetail: React.FC = () => {
   const [proposal, setProposal] = useState<Proposal | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   
-  // 👇 YENİ: DÜZENLEME MODU STATE'LERİ
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [editContent, setEditContent] = useState<string>('');
   const [isSaving, setIsSaving] = useState<boolean>(false);
   
+  const [aiAnchorEl, setAiAnchorEl] = useState<null | HTMLElement>(null);
+  const [isAiLoading, setIsAiLoading] = useState<boolean>(false);
+  const isAiMenuOpen = Boolean(aiAnchorEl);
+
+  // 👇 YENİ: Özel Talimat Pop-up State'leri
+  const [customAiDialogOpen, setCustomAiDialogOpen] = useState<boolean>(false);
+  const [customAiPrompt, setCustomAiPrompt] = useState<string>('');
+
   const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -80,7 +95,7 @@ const ProposalDetail: React.FC = () => {
           headers: { Authorization: `Bearer ${token}` } 
         });
         setProposal(response.data);
-        setEditContent(response.data.generatedCoverLetter); // Editöre metni doldur
+        setEditContent(response.data.generatedCoverLetter);
       } catch (error) {
         console.error("Teklif yüklenirken hata:", error);
       } finally {
@@ -107,7 +122,6 @@ const ProposalDetail: React.FC = () => {
     }
   }, [proposal]);
 
-  // 👇 YENİ: TEKLİFİ VERİTABANINA KAYDETME FONKSİYONU
   const handleSaveEdit = async () => {
     setIsSaving(true);
     try {
@@ -124,6 +138,27 @@ const ProposalDetail: React.FC = () => {
       console.error(error);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleAiRewrite = async (instruction: string) => {
+    setAiAnchorEl(null); 
+    if (!editContent.trim()) return;
+    
+    setIsAiLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.post(`http://localhost:5001/api/proposals/enhance`,
+        { text: editContent, instruction },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      setEditContent(response.data.enhancedText);
+    } catch (error) {
+      alert('Yapay zeka ile iletişim kurulurken bir hata oluştu.');
+      console.error(error);
+    } finally {
+      setIsAiLoading(false);
     }
   };
 
@@ -228,12 +263,43 @@ const ProposalDetail: React.FC = () => {
                 </Box>
               </Box>
               
-              {/* 👇 YENİ: DÜZENLEME BUTONU VE İPTAL/KAYDET MANTIĞI */}
               <Box data-html2canvas-ignore>
                 {isEditing ? (
-                  <Box display="flex" gap={1}>
-                    <Button variant="outlined" color="error" onClick={() => { setIsEditing(false); setEditContent(proposal.generatedCoverLetter); }}>İptal</Button>
-                    <Button variant="contained" color="success" startIcon={isSaving ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />} onClick={handleSaveEdit} disabled={isSaving}>Kaydet</Button>
+                  <Box display="flex" gap={1} alignItems="center">
+                    
+                    <Button 
+                      variant="contained" 
+                      startIcon={isAiLoading ? <CircularProgress size={20} color="inherit" /> : <AutoAwesomeIcon />} 
+                      onClick={(e) => setAiAnchorEl(e.currentTarget)}
+                      disabled={isAiLoading}
+                      sx={{ background: 'linear-gradient(45deg, #9c27b0, #673ab7)', color: 'white', '&:hover': { background: 'linear-gradient(45deg, #7b1fa2, #512da8)' } }}
+                    >
+                      {isAiLoading ? 'YAZILIYOR...' : 'AI İLE İYİLEŞTİR'}
+                    </Button>
+                    
+                    <Menu anchorEl={aiAnchorEl} open={isAiMenuOpen} onClose={() => setAiAnchorEl(null)}>
+                      <MenuItem onClick={() => handleAiRewrite('professional')}>
+                        <ListItemIcon><BusinessCenterIcon fontSize="small" sx={{ color: '#1976d2' }} /></ListItemIcon>
+                        <ListItemText>Daha Profesyonel Yap</ListItemText>
+                      </MenuItem>
+                      <MenuItem onClick={() => handleAiRewrite('shorter')}>
+                        <ListItemIcon><ShortTextIcon fontSize="small" sx={{ color: '#e64a19' }} /></ListItemIcon>
+                        <ListItemText>Daha Kısa ve Öz Yaz</ListItemText>
+                      </MenuItem>
+                      <MenuItem onClick={() => handleAiRewrite('grammar')}>
+                        <ListItemIcon><SpellcheckIcon fontSize="small" sx={{ color: '#388e3c' }} /></ListItemIcon>
+                        <ListItemText>Yazım Hatalarını Düzelt</ListItemText>
+                      </MenuItem>
+                      <Divider />
+                      {/* 👇 YENİ: ÖZEL TALİMAT SEÇENEĞİ */}
+                      <MenuItem onClick={() => { setAiAnchorEl(null); setCustomAiDialogOpen(true); }}>
+                        <ListItemIcon><AutoFixHighIcon fontSize="small" sx={{ color: '#9c27b0' }} /></ListItemIcon>
+                        <ListItemText sx={{ fontWeight: 'bold', color: '#9c27b0' }}>Özel Talimat Ver...</ListItemText>
+                      </MenuItem>
+                    </Menu>
+
+                    <Button variant="outlined" color="error" onClick={() => { setIsEditing(false); setEditContent(proposal.generatedCoverLetter); }} disabled={isAiLoading}>İptal</Button>
+                    <Button variant="contained" color="success" startIcon={isSaving ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />} onClick={handleSaveEdit} disabled={isSaving || isAiLoading}>Kaydet</Button>
                   </Box>
                 ) : (
                   <Button variant="outlined" startIcon={<EditIcon />} onClick={() => setIsEditing(true)}>Metni Düzenle</Button>
@@ -241,7 +307,6 @@ const ProposalDetail: React.FC = () => {
               </Box>
             </Box>
 
-            {/* 👇 YENİ: DÜZENLEME MODU AÇIKSA TEXTFIELD, KAPALIYSA MARKDOWN */}
             <Box className="markdown-content">
               {isEditing ? (
                 <TextField
@@ -251,9 +316,11 @@ const ProposalDetail: React.FC = () => {
                   value={editContent}
                   onChange={(e) => setEditContent(e.target.value)}
                   variant="outlined"
+                  disabled={isAiLoading} 
                   sx={{ 
                     '& .MuiInputBase-root': { fontFamily: 'monospace', fontSize: '0.95rem', lineHeight: 1.6 },
-                    bgcolor: '#fafafa'
+                    bgcolor: isAiLoading ? '#f0f0f0' : '#fafafa', 
+                    transition: 'all 0.3s ease'
                   }}
                 />
               ) : (
@@ -276,6 +343,62 @@ const ProposalDetail: React.FC = () => {
             </Typography>
           </Paper>
         </div>
+
+        {/* 👇 YENİ: ÖZEL TALİMAT (CUSTOM PROMPT) POP-UP'I */}
+        <Dialog open={customAiDialogOpen} onClose={() => setCustomAiDialogOpen(false)} fullWidth maxWidth="sm">
+          <DialogTitle sx={{ fontWeight: 'bold', color: '#673ab7', display: 'flex', alignItems: 'center', gap: 1 }}>
+            <AutoFixHighIcon /> Yapay Zekaya Özel Talimat
+          </DialogTitle>
+          <DialogContent>
+            <Typography variant="body2" color="textSecondary" sx={{ mb: 3, mt: 1 }}>
+              Metnin nasıl değiştirilmesini istediğinizi yazın. (Örn: "Daha samimi bir dil kullan", "Mobil uygulama kısmını daha detaylı anlat")
+            </Typography>
+
+            {/* Müşteriden mesaj gelmişse çıkacak özel alan */}
+            {proposal.clientFeedback && (
+              <Box sx={{ mb: 3, p: 2, bgcolor: '#f3e5f5', borderRadius: 2, border: '1px solid #e1bee7' }}>
+                <Typography variant="body2" sx={{ color: '#4a148c', fontStyle: 'italic', mb: 1.5, fontWeight: 500 }}>
+                  💬 Müşteri Mesajı: "{proposal.clientFeedback}"
+                </Typography>
+                <Button
+                  size="small"
+                  variant="contained"
+                  sx={{ bgcolor: '#8e24aa', color: 'white', '&:hover': { bgcolor: '#6a1b9a' } }}
+                  onClick={() => setCustomAiPrompt(proposal.clientFeedback || '')}
+                >
+                  MESAJI TALİMAT OLARAK KULLAN
+                </Button>
+              </Box>
+            )}
+
+            <TextField
+              autoFocus
+              fullWidth
+              multiline
+              rows={3}
+              variant="outlined"
+              placeholder="Talimatınızı buraya yazın..."
+              value={customAiPrompt}
+              onChange={(e) => setCustomAiPrompt(e.target.value)}
+            />
+          </DialogContent>
+          <DialogActions sx={{ p: 2, pt: 0 }}>
+            <Button onClick={() => setCustomAiDialogOpen(false)} color="error" sx={{ fontWeight: 'bold' }}>İPTAL</Button>
+            <Button
+              onClick={() => {
+                setCustomAiDialogOpen(false);
+                handleAiRewrite(customAiPrompt);
+                setCustomAiPrompt('');
+              }}
+              variant="contained"
+              disabled={!customAiPrompt.trim()}
+              sx={{ background: 'linear-gradient(45deg, #9c27b0, #673ab7)', fontWeight: 'bold' }}
+            >
+              UYGULA
+            </Button>
+          </DialogActions>
+        </Dialog>
+
       </Container>
     </PageWrapper>
   );

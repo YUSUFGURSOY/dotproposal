@@ -22,10 +22,12 @@ export interface IProposal extends Document {
   updatedAt: Date;
   aiInsights: string[];
   
-  
   isViewed: boolean;
   viewedAt?: Date;
   clientFeedback?: string;
+  
+  // 👇 YENİ: Raptiye (Sabitleme) özelliği için eklendi
+  isPinned?: boolean; 
 }
 
 const proposalSchema = new Schema<IProposal>({
@@ -70,8 +72,6 @@ const proposalSchema = new Schema<IProposal>({
     type: [String], 
     default: []
   },
-  
-  // 👇 İŞTE EKSİK OLAN KISIM BURASIYDI! BUNLARI ŞEMAYA EKLEDİK:
   isViewed: { 
     type: Boolean, 
     default: false 
@@ -83,15 +83,22 @@ const proposalSchema = new Schema<IProposal>({
     type: String,
     enum: ['Taslak', 'İletildi', 'Kabul Edildi', 'Reddedildi'],
     default: 'Taslak'
-  },clientFeedback: {
+  },
+  clientFeedback: {
     type: String,
     default: ''
-  },clientFeedbackDate:
-   { type: Date },            
-  isClientFeedbackRead: 
-  { type: Boolean, default: false }
-
-
+  },
+  clientFeedbackDate: { 
+    type: Date 
+  },            
+  isClientFeedbackRead: { 
+    type: Boolean, default: false 
+  },
+  // 👇 YENİ: Raptiye varsayılan olarak kapalı gelsin
+  isPinned: {
+    type: Boolean,
+    default: false
+  }
 }, {
   timestamps: true
 });

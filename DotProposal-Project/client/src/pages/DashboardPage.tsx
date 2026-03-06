@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import {
   Container, Typography, Card, CardContent, CardActions, Button, Box, Chip,
   CircularProgress, Stack, Paper, Avatar, 
-  Select, MenuItem, FormControl
+  Select, MenuItem, FormControl, IconButton,Tooltip as MuiTooltip // 👇 IconButton Eklendi
 } from '@mui/material';
 import { useSelector } from 'react-redux';
 import { type RootState } from '../app/store';
@@ -18,11 +18,14 @@ import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import ForumIcon from '@mui/icons-material/Forum';
+// 👇 YENİ: Raptiye İkonları
+import PushPinIcon from '@mui/icons-material/PushPin';
+import PushPinOutlinedIcon from '@mui/icons-material/PushPinOutlined';
+
 import axios from 'axios';
 import { useTranslation } from 'react-i18next';
 import { alpha } from '@mui/system';
 
-// GRAFİK KÜTÜPHANESİ 
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface Proposal {
@@ -40,6 +43,7 @@ interface Proposal {
   clientFeedback?: string;
   clientFeedbackDate?: string; 
   isClientFeedbackRead?: boolean; 
+  isPinned?: boolean; // 👇 YENİ
 }
 
 const timeSince = (dateString?: string) => {
@@ -114,18 +118,56 @@ const DashboardPage: React.FC = () => {
     }
   };
 
+  // 👇 YENİ: RAPTİYE TIKLAMA FONKSİYONU
+  const handleTogglePin = async (id: string, currentPinStatus: boolean) => {
+    try {
+      const token = localStorage.getItem('token');
+      // Arka plana anında istek at
+      await axios.patch(`http://localhost:5001/api/proposals/${id}/pin`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      // Arayüzü anında güncelle (sayfa yenilemeye gerek kalmadan)
+      setProposals(proposals.map(p => p._id === id ? { ...p, isPinned: !currentPinStatus } : p));
+    } catch (error) {
+      console.error('Sabitleme işlemi başarısız:', error);
+    }
+  };
+
   const acceptedCount = proposals.filter(p => p.dealStatus === 'Kabul Edildi').length;
   const rejectedCount = proposals.filter(p => p.dealStatus === 'Reddedildi').length;
   const totalResponded = acceptedCount + rejectedCount;
   const winRate = totalResponded > 0 ? Math.round((acceptedCount / totalResponded) * 100) : 0;
 
-  // 👇 YENİ: MİNİ GRAFİK VERİSİ
   const chartData = [
     { name: 'Kabul', value: acceptedCount, color: '#4caf50' },
     { name: 'İletildi', value: proposals.filter(p => p.dealStatus === 'İletildi').length, color: '#2196f3' },
     { name: 'Red', value: rejectedCount, color: '#f44336' },
     { name: 'Taslak', value: proposals.filter(p => p.dealStatus === 'Taslak' || !p.dealStatus).length, color: '#9e9e9e' }
   ].filter(data => data.value > 0);
+
+  // 👇 GÜNCELLENEN AKILLI SIRALAMA ALGORİTMASI
+  const sortedProposals = [...proposals].sort((a, b) => {
+    // 1. VIP ÖNCELİK: Raptiyelenmiş (Sabitlenmiş) teklifler HER ZAMAN en üstte!
+    if (a.isPinned && !b.isPinned) return -1;
+    if (!a.isPinned && b.isPinned) return 1;
+
+    // 2. ÖNCELİK: Okunmamış yeni müşteri mesajı olanlar
+    const aHasUnread = a.clientFeedback && a.clientFeedback.trim() !== '' && !a.isClientFeedbackRead;
+    const bHasUnread = b.clientFeedback && b.clientFeedback.trim() !== '' && !b.isClientFeedbackRead;
+
+    if (aHasUnread && !bHasUnread) return -1;
+    if (!aHasUnread && bHasUnread) return 1;
+
+    // 3. ÖNCELİK: En son harekete (Aktiviteye) göre sırala
+    const getLatestActivityDate = (p: Proposal) => {
+      const dates = [new Date(p.createdAt).getTime()];
+      if (p.viewedAt) dates.push(new Date(p.viewedAt).getTime());
+      if (p.clientFeedbackDate) dates.push(new Date(p.clientFeedbackDate).getTime());
+      return Math.max(...dates);
+    };
+
+    return getLatestActivityDate(b) - getLatestActivityDate(a); 
+  });
 
   return (
     <Box sx={{ background: gradientBg, minHeight: '100vh', py: 8 }}>
@@ -154,12 +196,11 @@ const DashboardPage: React.FC = () => {
           </Stack>
         </Paper>
 
-        {/* --- İSTATİSTİK KARTLARI (YENİ MİNİ GRAFİK BURADA) --- */}
+        {/* --- İSTATİSTİK KARTLARI --- */}
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr 1fr' }, gap: 3, mb: 5 }}>
           {[
             { label: 'Toplam Teklif', value: proposals.length, icon: <DescriptionIcon />, color: '#667eea' },
             { label: 'Bu Ay', value: proposals.filter((p) => new Date(p.createdAt).getMonth() === new Date().getMonth()).length, icon: <TrendingUpIcon />, color: '#4ecdc4' },
-            // 👇 KABUL EDİLEN KARTI (Avatar yerine Grafik eklendi)
             { label: 'Kabul Edilen', value: acceptedCount, isChart: true, color: '#4caf50' }, 
             { label: 'Kazanma Oranı', value: `%${winRate}`, icon: <EmojiEventsIcon />, color: '#ffb300' }, 
           ].map((stat, index) => (
@@ -170,7 +211,6 @@ const DashboardPage: React.FC = () => {
               <Stack direction="row" alignItems="center" spacing={2}>
                 
                 {stat.isChart ? (
-                  /* 📊 İKON YERİNE ZARİF MİNİ GRAFİK */
                   <Box sx={{ width: 56, height: 56, position: 'relative' }}>
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
@@ -188,7 +228,6 @@ const DashboardPage: React.FC = () => {
                     </ResponsiveContainer>
                   </Box>
                 ) : (
-                  /* 👤 NORMAL İKONLAR */
                   <Avatar sx={{ bgcolor: `${stat.color}20`, color: stat.color, width: 50, height: 50 }}>
                     {stat.icon}
                   </Avatar>
@@ -212,7 +251,7 @@ const DashboardPage: React.FC = () => {
           <Box display="flex" justifyContent="center" py={10}>
             <CircularProgress sx={{ color: 'white' }} size={60} />
           </Box>
-        ) : proposals.length === 0 ? (
+        ) : sortedProposals.length === 0 ? (
           <Paper elevation={6} sx={{ textAlign: 'center', py: 10, px: 4, borderRadius: 5, background: alpha('#fff', 0.1), backdropFilter: 'blur(10px)', border: '2px dashed rgba(255,255,255,0.3)', color: 'white' }}>
             <DescriptionIcon sx={{ fontSize: 80, mb: 3, opacity: 0.5 }} />
             <Typography variant="h5" fontWeight="bold" gutterBottom>{t('dashboard.noProposals', 'Henüz oluşturulmuş bir teklifiniz yok.')}</Typography>
@@ -220,8 +259,28 @@ const DashboardPage: React.FC = () => {
           </Paper>
         ) : (
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' }, gap: 3 }}>
-            {proposals.map((item) => (
-              <Card key={item._id} elevation={6} sx={{ borderRadius: 4, background: alpha('#fff', 0.95), backdropFilter: 'blur(10px)', transition: 'all 0.3s ease', '&:hover': { transform: 'translateY(-8px)', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' } }}>
+            {sortedProposals.map((item) => ( 
+              
+              <Card key={item._id} elevation={6} sx={{ position: 'relative', borderRadius: 4, background: alpha('#fff', 0.95), backdropFilter: 'blur(10px)', transition: 'all 0.3s ease', '&:hover': { transform: 'translateY(-8px)', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' } }}>
+               
+               {/* 👇 YENİ: KARTIN SAĞ ÜST KÖŞESİNDEKİ RAPTİYE İKONU */}
+               <MuiTooltip title={item.isPinned ? "Sabitlemeyi Kaldır" : "En Üste Sabitle"} placement="top" arrow>
+                 <IconButton
+                   onClick={() => handleTogglePin(item._id, !!item.isPinned)}
+                   sx={{
+                     position: 'absolute',
+                     top: 8,
+                     right: 8,
+                     zIndex: 10,
+                     color: item.isPinned ? '#ffb300' : 'rgba(0,0,0,0.15)',
+                     backgroundColor: item.isPinned ? 'rgba(255,179,0,0.1)' : 'transparent',
+                     '&:hover': { backgroundColor: 'rgba(255,179,0,0.2)', color: '#ffb300' }
+                   }}
+                 >
+                   {item.isPinned ? <PushPinIcon fontSize="small" /> : <PushPinOutlinedIcon fontSize="small" />}
+                 </IconButton>
+               </MuiTooltip>
+
                <CardContent sx={{ p: 0, '&:last-child': { pb: 0 } }}>
 
   {/* ── TOP GRADIENT BAND ── */}
@@ -230,6 +289,8 @@ const DashboardPage: React.FC = () => {
       px: 2.5,
       pt: 2.5,
       pb: 2,
+      // Raptiye ikonuna yer açmak için sağ padding'i artırdık (pr: 5)
+      pr: 5,
       background:
         item.dealStatus === 'Kabul Edildi'
           ? 'linear-gradient(135deg, rgba(46,125,50,0.08) 0%, rgba(76,175,80,0.04) 100%)'
