@@ -77,7 +77,7 @@ const DashboardPage: React.FC = () => {
       }
 
       try {
-        const response = await axios.get('http://localhost:5001/api/proposals', {
+        const response = await axios.get('https://dotproposal.onrender.com/api/proposals', {
           headers: { Authorization: `Bearer ${token}` },
         });
         setProposals(response.data);
@@ -95,7 +95,7 @@ const DashboardPage: React.FC = () => {
     if (window.confirm(t('dashboard.deleteConfirm', 'Bu teklifi silmek istediğinize emin misiniz?'))) {
       try {
         const token = localStorage.getItem('token');
-        await axios.delete(`http://localhost:5001/api/proposals/${id}`, {
+        await axios.delete(`https://dotproposal.onrender.com/api/proposals/${id}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setProposals(proposals.filter((p) => p._id !== id));
@@ -108,7 +108,7 @@ const DashboardPage: React.FC = () => {
   const handleStatusChange = async (id: string, newStatus: string) => {
     try {
       const token = localStorage.getItem('token');
-      await axios.patch(`http://localhost:5001/api/proposals/${id}/status`, 
+      await axios.patch(`https://dotproposal.onrender.com/api/proposals/${id}/status`, 
         { dealStatus: newStatus },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -123,7 +123,7 @@ const DashboardPage: React.FC = () => {
     try {
       const token = localStorage.getItem('token');
       // Arka plana anında istek at
-      await axios.patch(`http://localhost:5001/api/proposals/${id}/pin`, {}, {
+      await axios.patch(`https://dotproposal.onrender.com/api/proposals/${id}/pin`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       // Arayüzü anında güncelle (sayfa yenilemeye gerek kalmadan)

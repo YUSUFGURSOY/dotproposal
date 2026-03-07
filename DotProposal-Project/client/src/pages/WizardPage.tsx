@@ -425,7 +425,7 @@ const WizardPage: React.FC = () => {
             selectedSections 
         };
 
-        const response = await axios.post('http://localhost:5001/api/proposals', payload, {
+        const response = await axios.post('https://dotproposal.onrender.com/api/proposals', payload, {
             headers: { 
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
@@ -466,7 +466,7 @@ const WizardPage: React.FC = () => {
 
       try {
         const token = localStorage.getItem('token');
-        const response = await axios.get(`http://localhost:5001/api/proposals/${proposalId}`, {
+        const response = await axios.get(`https://dotproposal.onrender.com/api/proposals/${proposalId}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
 

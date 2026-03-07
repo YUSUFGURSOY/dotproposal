@@ -28,7 +28,7 @@ const ForgotPasswordPage: React.FC = () => {
     setLoading(true);
     setMessage(null);
     try {
-      await axios.post('http://localhost:5001/api/auth/forgot-password', { email });
+      await axios.post('https://dotproposal.onrender.com/api/auth/forgot-password', { email });
       setStep(2);
       setMessage({ type: 'success', text: 'Sıfırlama kodu e-postanıza gönderildi (Spam kutusunu kontrol etmeyi unutmayın).' });
       setCooldown(120); // 2 Dakika bekleme süresi
@@ -49,7 +49,7 @@ const ForgotPasswordPage: React.FC = () => {
     setLoading(true);
     setMessage(null);
     try {
-      await axios.post('http://localhost:5001/api/auth/reset-password', { email, code, newPassword });
+      await axios.post('https://dotproposal.onrender.com/api/auth/reset-password', { email, code, newPassword });
       setMessage({ type: 'success', text: 'Şifreniz başarıyla değiştirildi! Giriş sayfasına yönlendiriliyorsunuz...' });
       setTimeout(() => navigate('/login'), 3000);
     } catch (error: any) {

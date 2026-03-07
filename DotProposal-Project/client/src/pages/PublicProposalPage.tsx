@@ -31,7 +31,7 @@ const PublicProposalPage: React.FC = () => {
     if (!feedback.trim()) return;
     setIsSubmitting(true);
     try {
-      await axios.post(`http://localhost:5001/api/proposals/public/${id}/feedback`, { feedback });
+      await axios.post(`https://dotproposal.onrender.com/api/proposals/public/${id}/feedback`, { feedback });
       setIsSubmitted(true);
     } catch (err) {
       alert('Mesaj gönderilirken bir hata oluştu.');
@@ -43,7 +43,7 @@ const PublicProposalPage: React.FC = () => {
   useEffect(() => {
     const fetchPublicProposal = async () => {
       try {
-        const response = await axios.get(`http://localhost:5001/api/proposals/public/${id}`);
+        const response = await axios.get(`https://dotproposal.onrender.com/api/proposals/public/${id}`);
         setProposal(response.data);
       } catch (err) {
         setError('Bu teklif bulunamadı veya süresi dolmuş olabilir.');

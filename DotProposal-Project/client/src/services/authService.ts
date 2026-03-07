@@ -1,7 +1,7 @@
 // src/services/authService.ts
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5001/api/';
+const API_URL = 'https://dotproposal.onrender.com/api/';
 
 // Veri Tipleri
 interface RegisterData {

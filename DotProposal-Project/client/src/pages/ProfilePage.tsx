@@ -62,8 +62,8 @@ const ProfilePage: React.FC = () => {
   // Backend'den gelen dosya yolunu düzeltme (Windows ters slash sorunu için)
   const getCvLink = () => {
     if (!user?.cvFileName) return null;
-    // http://localhost:5001/uploads/dosyaadi.pdf
-    return `http://localhost:5001/uploads/${user.cvFileName}`;
+    // https://dotproposal.onrender.com/uploads/dosyaadi.pdf
+    return `https://dotproposal.onrender.com/uploads/${user.cvFileName}`;
   };
 
   return (

@@ -64,7 +64,7 @@ const Navbar: React.FC = () => {
       try {
         const token = localStorage.getItem('token');
         if (!token) return;
-        const response = await axios.get('http://localhost:5001/api/proposals', {
+        const response = await axios.get('https://dotproposal.onrender.com/api/proposals', {
           headers: { Authorization: `Bearer ${token}` },
         });
         const count = response.data.filter((p: { clientFeedback?: string; isClientFeedbackRead?: boolean }) => p.clientFeedback && p.clientFeedback.trim() !== '' && p.isClientFeedbackRead === false).length;

@@ -91,7 +91,7 @@ const ProposalDetail: React.FC = () => {
     const fetchProposal = async () => {
       try {
         const token = localStorage.getItem('token'); 
-        const response = await axios.get(`http://localhost:5001/api/proposals/${id}`, {
+        const response = await axios.get(`https://dotproposal.onrender.com/api/proposals/${id}`, {
           headers: { Authorization: `Bearer ${token}` } 
         });
         setProposal(response.data);
@@ -111,7 +111,7 @@ const ProposalDetail: React.FC = () => {
       const markAsRead = async () => {
         try {
           const token = localStorage.getItem('token');
-          await axios.patch(`http://localhost:5001/api/proposals/${proposal._id}/read-feedback`, {}, {
+          await axios.patch(`https://dotproposal.onrender.com/api/proposals/${proposal._id}/read-feedback`, {}, {
             headers: { Authorization: `Bearer ${token}` }
           });
         } catch (error) {
@@ -126,7 +126,7 @@ const ProposalDetail: React.FC = () => {
     setIsSaving(true);
     try {
       const token = localStorage.getItem('token');
-      await axios.put(`http://localhost:5001/api/proposals/${id}`,
+      await axios.put(`https://dotproposal.onrender.com/api/proposals/${id}`,
         { generatedCoverLetter: editContent },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -148,7 +148,7 @@ const ProposalDetail: React.FC = () => {
     setIsAiLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.post(`http://localhost:5001/api/proposals/enhance`,
+      const response = await axios.post(`https://dotproposal.onrender.com/api/proposals/enhance`,
         { text: editContent, instruction },
         { headers: { Authorization: `Bearer ${token}` } }
       );
