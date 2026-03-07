@@ -20,17 +20,17 @@ import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import StarIcon from '@mui/icons-material/Star';
-import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
 import BoltIcon from '@mui/icons-material/Bolt';
 import { keyframes } from '@mui/system';
-
+import { useSelector } from 'react-redux';
 // SADECE FRAMER MOTION KULLANIYORUZ (HATA VERMEZ)
 import { motion } from 'framer-motion';
+import type { RootState } from '../app/store';
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
-  
+ const { isAuthenticated } = useSelector((state: RootState) => state.auth);
   // Geliştirilmiş Animasyonlar (CSS Keyframes - Orijinal Kodun)
   const float = keyframes`
     0%, 100% { transform: translateY(0px) rotate(0deg); }
@@ -319,76 +319,56 @@ const HomePage: React.FC = () => {
 
                 {/* CTA Buttons */}
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3}>
-                  <Button
-                    variant="contained"
-                    size="large"
-                    onClick={() => navigate('/wizard')}
-                    endIcon={<ArrowForwardIcon />}
-                    sx={{
-                      px: 7,
-                      py: 2.5,
-                      fontSize: '1.25rem',
-                      fontWeight: 800,
-                      borderRadius: '50px',
-                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                      boxShadow: '0 10px 40px rgba(102, 126, 234, 0.4), 0 0 0 0 rgba(102, 126, 234, 0.5)',
-                      border: 'none',
-                      position: 'relative',
-                      overflow: 'hidden',
-                      transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-                      '&::before': {
-                        content: '""',
-                        position: 'absolute',
-                        top: 0,
-                        left: '-100%',
-                        width: '100%',
-                        height: '100%',
-                        background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)',
-                        transition: 'left 0.5s'
-                      },
-                      '&:hover': {
-                        transform: 'translateY(-4px) scale(1.02)',
-                        boxShadow: '0 15px 50px rgba(102, 126, 234, 0.6), 0 0 0 4px rgba(102, 126, 234, 0.3)',
-                        background: 'linear-gradient(135deg, #5568d3 0%, #6941a6 100%)',
-                        '&::before': {
-                          left: '100%'
-                        }
-                      },
-                      '&:active': {
-                        transform: 'translateY(-2px) scale(0.98)'
-                      }
-                    }}
-                  >
-                    Hemen Başla
-                  </Button>
                   
-                  <Button
-                    variant="outlined"
-                    size="large"
-                    startIcon={<PlayArrowIcon />}
-                    sx={{
-                      px: 6,
-                      py: 2.5,
-                      fontSize: '1.15rem',
-                      fontWeight: 700,
-                      borderRadius: '50px',
-                      color: 'white',
-                      borderColor: 'rgba(255,255,255,0.25)',
-                      backdropFilter: 'blur(10px)',
-                      bgcolor: 'rgba(255,255,255,0.05)',
-                      borderWidth: '2px',
-                      transition: 'all 0.3s ease',
-                      '&:hover': {
-                        borderColor: 'rgba(255,255,255,0.6)',
-                        bgcolor: 'rgba(255,255,255,0.1)',
-                        transform: 'translateY(-3px)',
-                        boxShadow: '0 10px 30px rgba(255,255,255,0.15)',
-                        borderWidth: '2px'
-                      }
-                    }}
-                  >
-                    Demo İzle
-                  </Button>
+  <Button
+    variant="contained"
+    size="large"
+    onClick={() => {
+      if (isAuthenticated) {
+        navigate('/wizard');
+      } else {
+        navigate('/login');
+      }
+    }}
+    endIcon={<ArrowForwardIcon />}
+    sx={{
+      px: 7,
+      py: 2.5,
+      fontSize: '1.25rem',
+      fontWeight: 800,
+      borderRadius: '50px',
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      boxShadow: '0 10px 40px rgba(102, 126, 234, 0.4), 0 0 0 0 rgba(102, 126, 234, 0.5)',
+      border: 'none',
+      position: 'relative',
+      overflow: 'hidden',
+      transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+      '&::before': {
+        content: '""',
+        position: 'absolute',
+        top: 0,
+        left: '-100%',
+        width: '100%',
+        height: '100%',
+        background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)',
+        transition: 'left 0.5s'
+      },
+      '&:hover': {
+        transform: 'translateY(-4px) scale(1.02)',
+        boxShadow: '0 15px 50px rgba(102, 126, 234, 0.6), 0 0 0 4px rgba(102, 126, 234, 0.3)',
+        background: 'linear-gradient(135deg, #5568d3 0%, #6941a6 100%)',
+        '&::before': {
+          left: '100%'
+        }
+      },
+      '&:active': {
+        transform: 'translateY(-2px) scale(0.98)'
+      }
+    }}
+  >
+    Hemen Başla
+  </Button>
+
                 </Stack>
 
                 {/* Trust Badge */}
