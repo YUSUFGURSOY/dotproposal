@@ -7,8 +7,9 @@ import connectDB from './config/db';
 import authRoutes from './routes/authRoutes';
 import userRoutes from './routes/userRoutes'; // Kullanıcı rotalarını import ettik
 import proposalRoutes from './routes/proposalRoutes';
-import { connectQueue } from './config/rabbitmq'; // (RabbitMQ Import)
-import { startProposalWorker } from './workers/proposalWorker';
+// [DEVRE DIŞI BIRAKILDI - MVP SÜRÜMÜ] RabbitMQ geçici olarak kapalı:
+// import { connectQueue } from './config/rabbitmq'; 
+// import { startProposalWorker } from './workers/proposalWorker';
 
 dotenv.config();
 
@@ -61,11 +62,12 @@ app.get('/', (req: Request, res: Response) => {
   res.send('DotProposal Backend Çalışıyor! 🚀');
 });
 
-//Sunucuyu başlatmadan önce RabbitMQ'ya bağlanmasını sağlıyoruz
+// Sunucuyu başlatıyoruz
 const startServer = async () => {
     try {
-        await connectQueue(); // RabbitMQ'ya bağlan
-        await startProposalWorker();
+        // [DEVRE DIŞI BIRAKILDI - MVP SÜRÜMÜ] RabbitMQ geçici olarak kapalı:
+        // await connectQueue(); // RabbitMQ'ya bağlan
+        // await startProposalWorker();
 
         app.listen(PORT, () => {
           console.log(`⚡️[server]: Sunucu http://localhost:${PORT} adresinde çalışıyor`);

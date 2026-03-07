@@ -1,15 +1,16 @@
 // server/src/controllers/proposalController.ts
-// 👇 Request eklendi (Giriş yapmamış müşteri için)
 import { Request, Response } from 'express';
 import { AuthRequest } from '../middleware/authMiddleware';
 import * as proposalService from '../Service/proposalService';
-import { getChannel } from '../config/rabbitmq'; 
+// [DEVRE DIŞI BIRAKILDI - MVP SÜRÜMÜ]
+// import { getChannel } from '../config/rabbitmq'; 
 import Proposal from '../models/Proposal';       
 import User from '../models/User'; 
 import { sendEmail } from '../utils/sendEmail'; // Mail aracımızı çağırdık
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import dotenv from 'dotenv'; 
 dotenv.config();
+
 // 1. TEKLİF OLUŞTURMA FONKSİYONU 
 export const createProposal = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
@@ -28,12 +29,12 @@ export const createProposal = async (req: AuthRequest, res: Response): Promise<v
       jobDescription: jobDescription || 'Taslak İş Açıklaması',
       generatedCoverLetter: 'Yapay zeka teklifinizi hazırlıyor, lütfen bekleyin...', 
       
-      
       createdAt: new Date()
     });
     
     await newProposal.save();
 
+    /* --- [DEVRE DIŞI BIRAKILDI - MVP SÜRÜMÜ] RABBITMQ İLE ASENKRON İŞLEME ---
     // 2. RabbitMQ kanalını al
     const channel = getChannel();
     if (!channel) {
@@ -60,11 +61,37 @@ export const createProposal = async (req: AuthRequest, res: Response): Promise<v
       message: 'Teklifiniz sıraya alındı ve arka planda hazırlanıyor.',
       proposalId: newProposal._id
     });
+    ------------------------------------------------------------------------- */
+
+    // 👇 YENİ: SENKRON İŞLEME (RABBITMQ OLMADAN DOĞRUDAN YAPAY ZEKA ÇAĞRISI)
+    // Bekleme durumu (202) yerine doğrudan servise işi veriyoruz ve bitmesini bekliyoruz.
+    try {
+        // Yapay zeka servisini doğrudan çağır
+        await proposalService.generateProposalService(userId, req.body, newProposal._id.toString());
+        
+        // İşlem bittikten sonra frontend'e başarı cevabı dön
+        res.status(200).json({
+          message: 'Teklifiniz başarıyla oluşturuldu!',
+          proposalId: newProposal._id
+        });
+    } catch (aiError: any) {
+        console.error("Yapay Zeka (Doğrudan) İşlem Hatası:", aiError);
+        // Hata olursa veritabanındaki "pending" teklifi hata durumuna çek
+        await Proposal.findByIdAndUpdate(newProposal._id, {
+            status: 'failed',
+            generatedCoverLetter: `Bir hata oluştu: ${aiError.message}`
+        });
+        
+        res.status(500).json({ 
+          message: 'Yapay zeka teklif oluştururken bir sorunla karşılaştı.',
+          proposalId: newProposal._id
+        });
+    }
 
   } catch (error: any) {
     console.error("❌ HATA DETAYI:", error);
     res.status(500).json({ 
-      message: error.message || 'Teklif oluşturulurken bir hata oluştu.' 
+      message: error.message || 'Teklif oluşturulurken genel bir hata oluştu.' 
     });
   }
 };
@@ -124,6 +151,7 @@ export const getPublicProposalById = async (req: Request, res: Response): Promis
     res.status(500).json({ message: 'Sunucu hatası.' });
   }
 };
+
 // 5. YENİ: ANLAŞMA DURUMUNU (MİNİ-CRM) GÜNCELLEME
 export const updateDealStatus = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
@@ -155,7 +183,6 @@ export const updateDealStatus = async (req: AuthRequest, res: Response): Promise
   }
 };
 
-// 6. YENİ: MÜŞTERİDEN GELEN GERİ BİLDİRİMİ KAYDETME (AÇIK ROTA)
 // 6. YENİ: MÜŞTERİDEN GELEN GERİ BİLDİRİMİ KAYDETME VE MAİL ATMA
 export const addClientFeedback = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -197,6 +224,7 @@ export const addClientFeedback = async (req: Request, res: Response): Promise<vo
     res.status(500).json({ message: 'Sunucu hatası.' });
   }
 };
+
 // 7. YENİ: MÜŞTERİ MESAJINI OTOMATİK OKUNDU YAP
 export const markFeedbackAsRead = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
@@ -210,6 +238,7 @@ export const markFeedbackAsRead = async (req: AuthRequest, res: Response): Promi
     res.status(500).json({ message: 'Sunucu hatası.' });
   }
 };
+
 // 8. YENİ: TEKLİF METNİNİ MANUEL DÜZENLEME (YAZILIMCI İÇİN)
 export const updateProposal = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
@@ -279,6 +308,7 @@ export const enhanceProposalText = async (req: AuthRequest, res: Response): Prom
     res.status(500).json({ message: 'Yapay zeka ile iletişim kurulamadı.' });
   }
 };
+
 // 10. YENİ: TEKLİFİ VERİTABANINDAN KALICI OLARAK SİLME
 export const deleteProposal = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
@@ -299,6 +329,7 @@ export const deleteProposal = async (req: AuthRequest, res: Response): Promise<v
     res.status(500).json({ message: 'Sunucu hatası.' });
   }
 };
+
 // 11. YENİ: TEKLİFİ SABİTLEME (RAPTİYE)
 export const togglePinProposal = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
