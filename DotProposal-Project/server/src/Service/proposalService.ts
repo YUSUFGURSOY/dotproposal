@@ -2,7 +2,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import fs from 'fs';
 import path from 'path';
-import axios from 'axios'; // 👇 YENİ EKLENDİ
+import axios from 'axios';
 import User from '../models/User';
 import Proposal from '../models/Proposal';
 import { buildProposalPrompt } from '../utils/promptBuilder'; 
@@ -25,55 +25,58 @@ export const generateProposalService = async (userId: string, data: CreatePropos
   }
   const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
   
-  // 1. DEĞİŞİKLİK: Gemini modelini kesinlikle JSON dönmesi için yapılandırıyoruz
   const model = genAI.getGenerativeModel({ 
     model: "gemini-2.5-flash",
-    generationConfig: { responseMimeType: "application/json" } // JSON garantisi
+    generationConfig: { responseMimeType: "application/json" } 
   });
 
-  // 1. Kullanıcıyı ve CV'yi bul
   const user = await User.findById(userId);
   if (!user || !user.cvFileName) {
     throw new Error('Lütfen önce profilinizden bir CV yükleyin.'); 
   }
 
-  const cvPath = path.join(__dirname, '../../uploads', user.cvFileName);
+  // 👇 YENİ EKLENDİ: CLOUDINARY'DEN PDF İNDİRME VE OKUMA MANTIĞI
   let cvText = '';
-  if (fs.existsSync(cvPath)) {
-    const dataBuffer = fs.readFileSync(cvPath);
+  try {
+    const cvUrl = user.cvFileName; // Artık cvFileName içinde "https://res.cloudinary.com/..." yazıyor
+    
+    // axios ile internetten (Cloudinary'den) PDF'i "arraybuffer" (ham veri) olarak indiriyoruz
+    const response = await axios.get(cvUrl, { responseType: 'arraybuffer' });
+    const dataBuffer = Buffer.from(response.data, 'binary');
+    
+    // İndirilen ham veriyi pdf-parse'a verip metne çeviriyoruz
     const pdfData = await pdf(dataBuffer);
     cvText = pdfData.text.replace(/\n/g, " ").replace(/\s+/g, " ").trim().substring(0, 8000);
-  } else {
-    throw new Error('CV dosyası sunucuda bulunamadı.');
+    
+    console.log("✅ CV başarıyla Cloudinary'den indirilip okundu!");
+  } catch (error) {
+    console.error("Buluttan CV Okuma Hatası:", error);
+    throw new Error('CV dosyası buluttan okunamadı. Lütfen profilinizden CV\'nizi tekrar yükleyin.');
   }
 
-  // 👇 YENİ EKLENDİ: GITHUB CANLI VERİSİ ÇEKİMİ
+  // GITHUB CANLI VERİSİ ÇEKİMİ (Aynı kaldı)
   if (user.githubLink) {
     try {
-      // Linkten sadece kullanıcı adını çıkarıyoruz (Örn: https://github.com/ysf -> ysf)
       const username = user.githubLink.split('/').filter(Boolean).pop();
       if (username) {
-        // Kullanıcının en son güncellediği 3 repoyu çekiyoruz
         const { data: repos } = await axios.get(`https://api.github.com/users/${username}/repos?sort=updated&per_page=3`, {
-          headers: { 'User-Agent': 'DotProposal-App' } // GitHub kuralları gereği zorunlu
+          headers: { 'User-Agent': 'DotProposal-App' } 
         });
         
         if (repos && repos.length > 0) {
            const githubDataText = repos.map((r: any) => `- ${r.name}: ${r.description || 'Açıklama yok.'} (Kullanılan Dil: ${r.language || 'Belirtilmemiş'})`).join('\n');
-           // Çekilen canlı veriyi CV'nin en altına yapay zekanın göreceği şekilde yapıştırıyoruz
            cvText += `\n\n--- GELİŞTİRİCİNİN GÜNCEL GITHUB AKTİFLİĞİ (CANLI KANIT) ---\n${githubDataText}\n(Yapay Zeka Talimatı: Lütfen teklifi yazarken geliştiricinin becerilerini kanıtlamak için yukarıdaki canlı GitHub güncel projelerini profesyonelce teklifin içine referans olarak yedir.)`;
            console.log("✅ GitHub canlı verisi çekildi ve CV'ye eklendi!");
         }
       }
     } catch (err) {
-      console.error("GitHub verisi çekilemedi (API limitine takılmış olabilir), CV ile devam ediliyor...", err);
-      // Hata olsa bile sistemi durdurmuyoruz, normal CV ile teklif oluşturmaya devam ediyor.
+      console.error("GitHub verisi çekilemedi, normal CV ile devam ediliyor...", err);
     }
   }
 
   console.log("✅ Veriler Hazır, DotProposal Teklifi Oluşturuyor...");
 
-  // 2. Utils dosyamızdan dinamik prompt'u alıyoruz
+  // Utils dosyamızdan dinamik prompt'u alıyoruz
   const prompt = buildProposalPrompt({
     cvText,
     jobTitle: data.jobTitle,
@@ -85,16 +88,15 @@ export const generateProposalService = async (userId: string, data: CreatePropos
     selectedSections: data.selectedSections
   });
 
-  // 3. Gemini'ye İstek At
+  // Gemini'ye İstek At
   const result = await model.generateContent(prompt);
-  const response = await result.response;
-  const rawText = response.text();
+  const aiResponse = await result.response;
+  const rawText = aiResponse.text();
 
   if (!rawText) {
     throw new Error("Gemini teklif oluşturamadı.");
   }
 
-  // 2. DEĞİŞİKLİK: Gelen JSON string'ini parçalıyoruz (Parse işlemi)
   let aiData;
   try {
     aiData = JSON.parse(rawText);
@@ -103,7 +105,6 @@ export const generateProposalService = async (userId: string, data: CreatePropos
     throw new Error("Yapay zeka uygun formatta cevap veremedi.");
   }
 
-  // 3. DEĞİŞİKLİK: Yeni kayıt oluşturmak yerine, veritabanını yeni JSON verileriyle güncelliyoruz
   const proposal = await Proposal.findByIdAndUpdate(
     proposalId,
     {
@@ -112,12 +113,9 @@ export const generateProposalService = async (userId: string, data: CreatePropos
       selectedFeatures: data.selectedFeatures || [],
       hourlyRate: data.hourlyRate || '',
       selectedSections: data.selectedSections || [],
-      
-      // JSON içinden gelen verileri ayırarak veritabanına kaydediyoruz:
       generatedCoverLetter: aiData.coverLetter, 
       aiInsights: aiData.aiInsights || [], 
-      
-      status: 'completed' // Frontend bu statüyü gördüğünde yükleme ekranını kapatacak
+      status: 'completed'
     },
     { new: true }
   );

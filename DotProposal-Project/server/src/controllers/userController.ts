@@ -4,7 +4,6 @@ import { AuthRequest } from '../middleware/authMiddleware';
 import User from '../models/User';
 
 // --- PROFİL GÜNCELLEME ---
-// Hem yazıları (Title) hem de dosyayı (CV) güncelleyecek
 export const updateProfile = async (req: AuthRequest, res: Response) => {
   try {
     const user = await User.findById(req.user._id);
@@ -13,19 +12,17 @@ export const updateProfile = async (req: AuthRequest, res: Response) => {
       // Gelen verileri al (Eğer boşsa eskisini koru)
       user.name = req.body.name || user.name;
       user.email = req.body.email || user.email;
-      user.title = req.body.title || user.title; // Örn: Frontend Developer
-      user.githubLink = req.body.githubLink || user.githubLink; // 👇 YENİ EKLENDİ
+      user.title = req.body.title || user.title; 
+      user.githubLink = req.body.githubLink || user.githubLink; 
 
-      // Eğer dosya yüklendiyse adını kaydet
+      // 👇 DİKKAT: ARTIK filename DEĞİL, path (Cloudinary URL'si) KULLANIYORUZ
       if (req.file) {
-        user.cvFileName = req.file.filename;
+        user.cvFileName = req.file.path;
       }
 
-      // Şifre değişikliği varsa (Opsiyonel, şimdilik basit tutalım)
+      // Şifre değişikliği varsa
       if (req.body.password) {
         user.password = req.body.password; 
-        // Not: User modelindeki 'pre save' hook sayesinde otomatik hash'lenmeli.
-        // Eğer modelde hook yoksa burada hashlemek gerekir.
       }
 
       const updatedUser = await user.save();
@@ -36,8 +33,8 @@ export const updateProfile = async (req: AuthRequest, res: Response) => {
         email: updatedUser.email,
         title: updatedUser.title,
         cvFileName: updatedUser.cvFileName,
-        githubLink: updatedUser.githubLink, // 👇 YENİ EKLENDİ
-        token: req.headers.authorization?.split(' ')[1] // Mevcut token'ı geri dön
+        githubLink: updatedUser.githubLink, 
+        token: req.headers.authorization?.split(' ')[1] 
       });
     } else {
       res.status(404).json({ message: 'Kullanıcı bulunamadı' });
@@ -59,7 +56,7 @@ export const getProfile = async (req: AuthRequest, res: Response) => {
         email: user.email,
         title: user.title,
         cvFileName: user.cvFileName,
-        githubLink: user.githubLink // 👇 YENİ EKLENDİ
+        githubLink: user.githubLink 
       });
     } else {
       res.status(404).json({ message: 'Kullanıcı bulunamadı' });
