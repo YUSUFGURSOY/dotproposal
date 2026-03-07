@@ -12,16 +12,21 @@ interface EmailOptions {
 
 export const sendEmail = async (options: EmailOptions): Promise<void> => {
   
-  // Taşıyıcıyı (transporter) daha spesifik SMTP ayarlarıyla oluşturuyoruz
-  const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 465, // SSL için 465 portu en güvenlisidir
-    secure: true, // Port 465 olduğu için true yapıyoruz
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS, // Buraya Gmail "Uygulama Şifresi" gelecek
-    },
-  });
+// server/src/utils/sendEmail.ts
+
+const transporter = nodemailer.createTransport({
+  host: 'smtp.gmail.com',
+  port: 587, // 👇 Değiştirildi: 465 yerine 587 kullanıyoruz
+  secure: false, // 👇 Değiştirildi: 587 portu için false olmalı
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+  tls: {
+    // 👇 EKLENDİ: Bazı sunucularda sertifika hatalarını önlemek için
+    rejectUnauthorized: false 
+  }
+});
 
   const mailOptions = {
     from: `DotProposal <${process.env.EMAIL_USER}>`,
