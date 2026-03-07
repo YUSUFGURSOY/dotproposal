@@ -12,29 +12,26 @@ interface EmailOptions {
 
 export const sendEmail = async (options: EmailOptions): Promise<void> => {
   
-// server/src/utils/sendEmail.ts
-
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587, // 👇 Değiştirildi: 465 yerine 587 kullanıyoruz
-  secure: false, // 👇 Değiştirildi: 587 portu için false olmalı
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-  tls: {
-    // 👇 EKLENDİ: Bazı sunucularda sertifika hatalarını önlemek için
-    rejectUnauthorized: false 
-  }
-});
+  const transporter = nodemailer.createTransport({
+    host: 'smtp.gmail.com',
+    port: 587, // 465 yerine 587'ye geçiyoruz
+    secure: false, // 587 portu STARTTLS kullandığı için burası false olmalı
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+    tls: {
+      // Bazı sunucuların bağlantıyı reddetmemesi için bu ayar hayat kurtarır
+      rejectUnauthorized: false 
+    }
+  });
 
   const mailOptions = {
-    from: `DotProposal <${process.env.EMAIL_USER}>`,
+    from: `"DotProposal" <${process.env.EMAIL_USER}>`,
     to: options.email,
     subject: options.subject,
     text: options.message,
   };
 
-  // Not: Controller tarafında await'i kaldırdığımız için bu işlem arka planda çalışacak
   await transporter.sendMail(mailOptions);
 };
