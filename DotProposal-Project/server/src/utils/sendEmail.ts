@@ -1,7 +1,10 @@
-import nodemailer from 'nodemailer';
-import dotenv from 'dotenv'; 
+// server/src/utils/sendEmail.ts
+import { Resend } from 'resend';
+import dotenv from 'dotenv';
 
 dotenv.config();
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 interface EmailOptions {
   email: string;
@@ -10,41 +13,28 @@ interface EmailOptions {
 }
 
 export const sendEmail = async (options: EmailOptions): Promise<void> => {
-  const userEmail = process.env.EMAIL_USER?.trim();
-  const userPass = process.env.EMAIL_PASS?.trim();
-
-  console.log(`📧 Mail gönderimi başlatılıyor... Alıcı: ${options.email}`);
-
-  // 👇 Değişiklik Burada: createTransport parantezi içine ( { ... } as any ) ekledik
-  const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 587,
-    secure: false, 
-    family: 4, // IPv6 hatasını (ENETUNREACH) çözmek için kritik
-    auth: {
-      user: userEmail,
-      pass: userPass,
-    },
-    tls: {
-      rejectUnauthorized: false 
-    }
-  } as any); // 👈 TypeScript hatasını bu "as any" çözecek
-
-  const mailOptions = {
-    from: `"DotProposal" <${userEmail}>`,
-    to: options.email,
-    subject: options.subject,
-    text: options.message,
-  };
+  console.log(`🚀 Resend ile mail fırlatılıyor... Alıcı: ${options.email}`);
 
   try {
-    const info = await transporter.sendMail(mailOptions);
-    console.log("✅ Mail başarıyla gönderildi!");
-    console.log("📬 SMTP Yanıtı:", info.response);
-  } catch (error: any) {
-    console.error("❌ Nodemailer Gönderim Hatası:", error.message);
-    if (error.code) {
-      console.error("🛠️ Hata Kodu:", error.code);
+    // 👇 GÜNCELLEME: Resend artık sonucu { data, error } olarak döndürüyor
+    const { data, error } = await resend.emails.send({
+      from: 'DotProposal Bildirim <onboarding@resend.dev>',
+      to: [options.email], // Kendi kayıtlı mail adresin olmalı
+      subject: options.subject,
+      text: options.message,
+    });
+
+    // Eğer Resend tarafından bir hata döndüyse
+    if (error) {
+      console.error("❌ Resend API Hatası:", error);
+      return;
     }
+
+    // Başarılıysa ID'yi yazdır (data?.id kullanarak TypeScript'i güvenceye alıyoruz)
+    console.log("✅ Resend Gönderimi Başarılı! ID:", data?.id);
+    
+  } catch (catchError: any) {
+    // Kodsal veya bağlantısal bir çökme olursa
+    console.error("❌ Beklenmeyen Sistem Hatası:", catchError.message);
   }
 };
