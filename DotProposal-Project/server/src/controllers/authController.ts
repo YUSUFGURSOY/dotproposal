@@ -240,21 +240,34 @@ export const resendVerificationEmail = async (req: Request, res: Response): Prom
     res.status(500).json({ message: 'Mail gönderilirken bir hata oluştu.' });
   }
 };
-// 👇 YENİ: MAGIC POLLING (Cihazlar Arası Doğrulama) İÇİN DURUM KONTROLÜ
+// 👇 GÜNCELLENDİ: KURŞUN GEÇİRMEZ MAGIC POLLING
 export const checkVerificationStatus = async (req: any, res: Response): Promise<void> => {
   try {
-    // req.user.id bilgisinin kimlik doğrulama middleware'i (verifyToken vb.) 
-    // tarafından isteğe (req) eklendiğini varsayıyoruz.
-    const user = await User.findById(req.user.id); 
+    let userId = req.user?.id; // Eğer middleware ile gelirse (Gelecekte eklersen diye)
+
+    // Eğer middleware yoksa, gelen header'dan token'ı kendimiz alıp çözüyoruz!
+    if (!userId && req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+      const token = req.headers.authorization.split(' ')[1];
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'gizli_anahtar') as any;
+      userId = decoded.id;
+    }
+
+    if (!userId) {
+      res.status(401).json({ message: 'Yetkisiz erişim. Token bulunamadı.' });
+      return;
+    }
+
+    const user = await User.findById(userId);
 
     if (!user) {
       res.status(404).json({ message: 'Kullanıcı bulunamadı.' });
       return;
     }
 
-    // Frontend'e sadece kullanıcının onaylanıp onaylanmadığı bilgisini dönüyoruz
+    // Mutlu son: Sadece onay durumunu gönderiyoruz
     res.status(200).json({ isVerified: user.isVerified });
   } catch (error) {
+    console.error("Radar Hatası:", error); // Terminalde daha detaylı log görebilmek için
     res.status(500).json({ message: 'Durum kontrolü sırasında sunucu hatası.' });
   }
 };
