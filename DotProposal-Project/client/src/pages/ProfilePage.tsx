@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from 'react';
 import { Container, Paper, TextField, Button, Typography, Box, Avatar, Grid, CircularProgress } from '@mui/material';
 import { useSelector, useDispatch } from 'react-redux';
@@ -20,6 +21,7 @@ const ProfilePage: React.FC = () => {
   const [name, setName] = useState(user?.name || '');
   const [email, setEmail] = useState(user?.email || '');
   const [title, setTitle] = useState(user?.title || 'Freelancer'); // Varsayılan değer
+  const [githubLink, setGithubLink] = useState((user as any)?.githubLink || ''); // 👇 YENİ EKLENDİ
   const [cvFile, setCvFile] = useState<File | null>(null);
 
   useEffect(() => {
@@ -48,6 +50,7 @@ const ProfilePage: React.FC = () => {
     formData.append('name', name);
     formData.append('email', email);
     formData.append('title', title);
+    formData.append('githubLink', githubLink); // 👇 YENİ EKLENDİ
     
     if (cvFile) {
       formData.append('cvFile', cvFile); // Backend'de 'upload.single('cvFile')' demiştik
@@ -110,6 +113,14 @@ const ProfilePage: React.FC = () => {
                 value={title} onChange={(e) => setTitle(e.target.value)}
                 margin="normal"
                 placeholder="Mesleğinizi girin"
+              />
+              
+              {/* 👇 YENİ EKLENDİ: GITHUB INPUT */}
+              <TextField
+                fullWidth label="GitHub Profil Linki (Opsiyonel)"
+                value={githubLink} onChange={(e) => setGithubLink(e.target.value)}
+                margin="normal"
+                placeholder="Örn: https://github.com/kullaniciadi"
               />
 
               {/* DOSYA YÜKLEME ALANI */}

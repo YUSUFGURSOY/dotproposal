@@ -9,6 +9,7 @@ export interface IUser extends Document {
   password: string;
   cvFileName?: string;
   title?: string;
+  githubLink?: string; // 👇 YENİ EKLENDİ
   resetPasswordCode?: string;
   resetPasswordExpire?: Date;
   resetPasswordCooldown?: Date;
@@ -40,7 +41,12 @@ const userSchema: Schema = new Schema(
     title: {
       type: String,
       default: 'Freelancer',
-    },resetPasswordCode: {
+    },
+    githubLink: { // 👇 YENİ EKLENDİ
+      type: String,
+      default: '',
+    },
+    resetPasswordCode: {
     type: String,
   },
   resetPasswordExpire: {

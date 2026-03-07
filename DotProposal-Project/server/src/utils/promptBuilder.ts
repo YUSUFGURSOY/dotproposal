@@ -166,7 +166,7 @@ Ardından şu notu olduğu gibi ekle:
 *Fiyatlandırma notu: Proje kapsamı ve süre netleştikten sonra saatlik ücret üzerinden nihai fiyatı paylaşacağım.*
 `;
 
-  // 4. CV yönlendirmesi
+  // 👇 4. CV VE GITHUB KANITI YÖNLENDİRMESİ (SADECE BURASI GÜNCELLENDİ)
   const cvGuidance = data.cvText
     ? `
 ### CV Analizi Talimatı
@@ -175,6 +175,7 @@ Aşağıdaki CV'yi oku. Teklife şu şekilde yansıt:
 - "Yönetici Özeti"nde en az 1 somut proje veya deneyim referansı ver
 - "Çözüm Önerisi"nde teknoloji seçimlerini CV'deki yetkinliklerle eşleştir
 - "Neden Ben" bölümünde CV'den 2–3 özgün başarıyı öne çıkar
+- 🔥 DİKKAT (GITHUB KANITI): Eğer sana verilen CV metninin en sonunda "GELİŞTİRİCİNİN GÜNCEL GITHUB AKTİFLİĞİ" başlıklı bir veri varsa, bu bilgiyi sıradan bir cümle gibi metnin arasına ASLA SIKIŞTIRMA! Bunun yerine teklifin uygun bir yerine "## 💻 Canlı Kod Referansları (GitHub)" adında YENİ VE DİKKAT ÇEKİCİ BİR BAŞLIK aç. Bu başlık altında o projeleri, teknolojileri ve açıklamalarını vurucu bir şekilde, madde madde listele.
 - "Deneyimli geliştirici" gibi jenerik ifadeler kullanma; CV'deki özgün bilgileri kullan
 - Tüm bölümlerde BEN dilini koru; sanki yazılımcı kendisi müşterisine yazıyormuş gibi
 

@@ -14,6 +14,7 @@ export const updateProfile = async (req: AuthRequest, res: Response) => {
       user.name = req.body.name || user.name;
       user.email = req.body.email || user.email;
       user.title = req.body.title || user.title; // Örn: Frontend Developer
+      user.githubLink = req.body.githubLink || user.githubLink; // 👇 YENİ EKLENDİ
 
       // Eğer dosya yüklendiyse adını kaydet
       if (req.file) {
@@ -35,6 +36,7 @@ export const updateProfile = async (req: AuthRequest, res: Response) => {
         email: updatedUser.email,
         title: updatedUser.title,
         cvFileName: updatedUser.cvFileName,
+        githubLink: updatedUser.githubLink, // 👇 YENİ EKLENDİ
         token: req.headers.authorization?.split(' ')[1] // Mevcut token'ı geri dön
       });
     } else {
@@ -56,7 +58,8 @@ export const getProfile = async (req: AuthRequest, res: Response) => {
         name: user.name,
         email: user.email,
         title: user.title,
-        cvFileName: user.cvFileName
+        cvFileName: user.cvFileName,
+        githubLink: user.githubLink // 👇 YENİ EKLENDİ
       });
     } else {
       res.status(404).json({ message: 'Kullanıcı bulunamadı' });

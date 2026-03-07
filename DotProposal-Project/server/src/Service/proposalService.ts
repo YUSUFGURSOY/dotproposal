@@ -2,6 +2,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import fs from 'fs';
 import path from 'path';
+import axios from 'axios'; // 👇 YENİ EKLENDİ
 import User from '../models/User';
 import Proposal from '../models/Proposal';
 import { buildProposalPrompt } from '../utils/promptBuilder'; 
@@ -44,6 +45,30 @@ export const generateProposalService = async (userId: string, data: CreatePropos
     cvText = pdfData.text.replace(/\n/g, " ").replace(/\s+/g, " ").trim().substring(0, 8000);
   } else {
     throw new Error('CV dosyası sunucuda bulunamadı.');
+  }
+
+  // 👇 YENİ EKLENDİ: GITHUB CANLI VERİSİ ÇEKİMİ
+  if (user.githubLink) {
+    try {
+      // Linkten sadece kullanıcı adını çıkarıyoruz (Örn: https://github.com/ysf -> ysf)
+      const username = user.githubLink.split('/').filter(Boolean).pop();
+      if (username) {
+        // Kullanıcının en son güncellediği 3 repoyu çekiyoruz
+        const { data: repos } = await axios.get(`https://api.github.com/users/${username}/repos?sort=updated&per_page=3`, {
+          headers: { 'User-Agent': 'DotProposal-App' } // GitHub kuralları gereği zorunlu
+        });
+        
+        if (repos && repos.length > 0) {
+           const githubDataText = repos.map((r: any) => `- ${r.name}: ${r.description || 'Açıklama yok.'} (Kullanılan Dil: ${r.language || 'Belirtilmemiş'})`).join('\n');
+           // Çekilen canlı veriyi CV'nin en altına yapay zekanın göreceği şekilde yapıştırıyoruz
+           cvText += `\n\n--- GELİŞTİRİCİNİN GÜNCEL GITHUB AKTİFLİĞİ (CANLI KANIT) ---\n${githubDataText}\n(Yapay Zeka Talimatı: Lütfen teklifi yazarken geliştiricinin becerilerini kanıtlamak için yukarıdaki canlı GitHub güncel projelerini profesyonelce teklifin içine referans olarak yedir.)`;
+           console.log("✅ GitHub canlı verisi çekildi ve CV'ye eklendi!");
+        }
+      }
+    } catch (err) {
+      console.error("GitHub verisi çekilemedi (API limitine takılmış olabilir), CV ile devam ediliyor...", err);
+      // Hata olsa bile sistemi durdurmuyoruz, normal CV ile teklif oluşturmaya devam ediyor.
+    }
   }
 
   console.log("✅ Veriler Hazır, DotProposal Teklifi Oluşturuyor...");

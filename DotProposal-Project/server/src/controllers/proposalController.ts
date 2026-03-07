@@ -246,18 +246,28 @@ export const enhanceProposalText = async (req: AuthRequest, res: Response): Prom
 
     // Gemini API'yi başlatıyoruz
     const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || '');
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    
+    // 👇 Kendi model ismini kullan (gemini-pro, gemini-1.5-flash vb.)
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }); 
 
-    // Kullanıcının seçtiği komuta göre yapay zekaya prompt (talimat) veriyoruz
+    // 👇 YENİ: YAPAY ZEKAYI SUSTURAN KATI KURAL
+    const strictRule = `
+      ÇOK ÖNEMLİ KURAL: Bana SADECE VE SADECE güncellenmiş teklif metnini döndüreceksin. 
+      - Başına "İşte yeni metin", "Harika bir teklif" gibi giriş cümleleri YAZMA. 
+      - Sonuna "Şu değişiklikleri yaptım", "Nedenleri şunlar" gibi açıklamalar KESİNLİKLE EKLEME. 
+      - Doğrudan Markdown formatındaki metinle başla ve metinle bitir.
+    `;
+
     let prompt = "";
     if (instruction === 'professional') {
-      prompt = "Aşağıdaki teklif metnini daha profesyonel, kurumsal ve ikna edici bir dille yeniden yaz:\n\n" + text;
+      prompt = "Aşağıdaki teklif metnini daha profesyonel, kurumsal ve ikna edici bir dille yeniden yaz.\n\n" + strictRule + "\n\nTeklif Metni:\n" + text;
     } else if (instruction === 'shorter') {
-      prompt = "Aşağıdaki teklif metnini anlamını kaybetmeden, daha kısa, öz ve vurucu bir şekilde özetleyerek yeniden yaz:\n\n" + text;
+      prompt = "Aşağıdaki teklif metnini anlamını kaybetmeden, daha kısa, öz ve vurucu bir şekilde özetleyerek yeniden yaz.\n\n" + strictRule + "\n\nTeklif Metni:\n" + text;
     } else if (instruction === 'grammar') {
-      prompt = "Aşağıdaki teklif metninin hiçbir anlamını veya cümlesini değiştirmeden, sadece yazım hatalarını ve dilbilgisi bozukluklarını düzelt:\n\n" + text;
+      prompt = "Aşağıdaki teklif metninin hiçbir anlamını veya cümlesini değiştirmeden, sadece yazım hatalarını ve dilbilgisi bozukluklarını düzelt.\n\n" + strictRule + "\n\nTeklif Metni:\n" + text;
     } else {
-      prompt = `Aşağıdaki teklif metnini sana verilen özel talimata göre yeniden yaz.\n\nÖzel Talimat: "${instruction}"\n\nTeklif Metni:\n${text}`;
+      // 4. SEÇENEK: KULLANICININ ÖZEL TALİMATI
+      prompt = `Aşağıdaki teklif metnini sana verilen özel talimata göre yeniden yaz.\n\nÖzel Talimat: "${instruction}"\n\n` + strictRule + `\n\nTeklif Metni:\n${text}`;
     }
 
     const result = await model.generateContent(prompt);
