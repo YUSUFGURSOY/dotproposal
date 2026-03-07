@@ -188,7 +188,6 @@ export const addClientFeedback = async (req: Request, res: Response): Promise<vo
   try {
     const { feedback } = req.body;
     
-    // YENİ: Teklifi çekerken, teklif sahibinin (user) isim ve mail bilgisini de getiriyoruz
     const proposal = await Proposal.findById(req.params.id).populate('user', 'name email');
 
     if (!proposal) {
@@ -196,29 +195,31 @@ export const addClientFeedback = async (req: Request, res: Response): Promise<vo
       return;
     }
 
-    // Mesajı veritabanına kaydet
+    // 1. Mesajı veritabanına ANINDA kaydet
     proposal.clientFeedback = feedback;
     proposal.clientFeedbackDate = new Date();
     proposal.isClientFeedbackRead = false;
     await proposal.save();
 
-    // 👇 YENİ: SİSTEMİ BOZMADAN ARKA PLANDA E-POSTA GÖNDERME KISMI
-    try {
-      const user: any = proposal.user;
-      if (user && user.email) {
-        const message = `Merhaba ${user.name},\n\n"${proposal.jobTitle}" başlıklı projeniz için müşterinizden yeni bir mesaj geldi!\n\nMesaj Detayı:\n"${feedback}"\n\nLütfen DotProposal paneline girerek mesajı kontrol edin ve müşterinize dönüş yapın.\n\nİyi çalışmalar,\nDotProposal Bildirim Sistemi`;
-        
-        await sendEmail({
-          email: user.email, // Teklif sahibinin kayıtlı e-posta adresi
-          subject: '💬 Yeni Mesaj Var! - DotProposal',
-          message: message,
-        });
-      }
-    } catch (emailError) {
-      console.error('E-posta gönderilemedi (Ancak mesaj veritabanına kaydedildi):', emailError);
+    // 👇 2. ASENKRON MAİL (AWAIT KULLANMIYORUZ)
+    // Bu sayede sistem mailin gitmesini beklemez, arka planda denerken kullanıcıya anında cevap döner.
+    const user: any = proposal.user;
+    if (user && user.email) {
+      const message = `Merhaba ${user.name},\n\n"${proposal.jobTitle}" başlıklı projeniz için müşterinizden yeni bir mesaj geldi!\n\nMesaj Detayı:\n"${feedback}"\n\nLütfen DotProposal paneline girerek mesajı kontrol edin ve müşterinize dönüş yapın.\n\nİyi çalışmalar,\nDotProposal Bildirim Sistemi`;
+      
+      // Await yok! Doğrudan fırlatıyoruz, hata verirse konsola yazdırıp geçiyor.
+      sendEmail({
+        email: user.email,
+        subject: '💬 Yeni Mesaj Var! - DotProposal',
+        message: message,
+      }).catch((emailError) => {
+        console.error('Arka planda e-posta gönderilemedi:', emailError);
+      });
     }
 
+    // 3. KULLANICIYA ANINDA CEVAP DÖN (Buton anında yeşile dönecek!)
     res.status(200).json({ message: 'Geri bildirim başarıyla iletildi.' });
+    
   } catch (error: any) {
     console.error("Geri bildirim kaydetme hatası:", error);
     res.status(500).json({ message: 'Sunucu hatası.' });
