@@ -59,10 +59,16 @@ const ProfilePage: React.FC = () => {
     dispatch(updateUserProfile(formData));
   };
 
-  // Backend'den gelen dosya yolunu düzeltme (Windows ters slash sorunu için)
+// Backend'den gelen dosya yolunu düzeltme (Cloudinary ve Eski Sistem uyumlu)
   const getCvLink = () => {
     if (!user?.cvFileName) return null;
-    // https://dotproposal.onrender.com/uploads/dosyaadi.pdf
+    
+    // Eğer veritabanındaki isim "http" ile başlıyorsa (Yani Cloudinary linkiyse)
+    if (user.cvFileName.startsWith('http')) {
+      return user.cvFileName; // Doğrudan bulut linkini ver
+    }
+    
+    // Eğer eski sistemde yüklenmiş bir dosyaysa (Geriye dönük uyumluluk için)
     return `https://dotproposal.onrender.com/uploads/${user.cvFileName}`;
   };
 
