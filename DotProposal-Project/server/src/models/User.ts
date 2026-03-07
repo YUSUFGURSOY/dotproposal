@@ -9,6 +9,9 @@ export interface IUser extends Document {
   password: string;
   cvFileName?: string;
   title?: string;
+  resetPasswordCode?: string;
+  resetPasswordExpire?: Date;
+  resetPasswordCooldown?: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
   // Mongoose'un isModified fonksiyonunu tanıması için bunu ekliyoruz
   isModified(path: string): boolean;
@@ -37,7 +40,15 @@ const userSchema: Schema = new Schema(
     title: {
       type: String,
       default: 'Freelancer',
-    }
+    },resetPasswordCode: {
+    type: String,
+  },
+  resetPasswordExpire: {
+    type: Date,
+  },
+  resetPasswordCooldown: {
+    type: Date,
+  }
   },
   {
     timestamps: true 

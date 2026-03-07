@@ -250,7 +250,8 @@ const LoginPage: React.FC = () => {
               </MuiLink>
 
               <MuiLink
-                href="#"
+                component={Link}
+    to="/forgot-password"
                 variant="body2"
                 sx={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'none' }}
               >

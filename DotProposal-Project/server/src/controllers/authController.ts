@@ -3,6 +3,7 @@ import { Request, Response } from 'express';
 import User from '../models/User';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
+import { sendEmail } from '../utils/sendEmail';
 
 // Token oluşturucu
 // id parametresini 'any' veya 'string' olarak alabiliriz
@@ -78,5 +79,81 @@ export const getMe = async (req: any, res: Response): Promise<void> => {
     res.json(user);
   } catch (error) {
     res.status(500).json({ message: 'Kullanıcı bilgisi alınamadı.' });
+  }
+};
+
+// 1. ŞİFRE SIFIRLAMA KODU GÖNDERME
+export const forgotPassword = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      res.status(404).json({ message: 'Bu e-posta adresine ait bir hesap bulunamadı.' });
+      return;
+    }
+
+    // Cooldown (Spam) Kontrolü
+    if (user.resetPasswordCooldown && user.resetPasswordCooldown > new Date()) {
+      const remainingSeconds = Math.ceil((user.resetPasswordCooldown.getTime() - Date.now()) / 1000);
+      res.status(429).json({ message: `Lütfen yeni bir kod istemeden önce ${remainingSeconds} saniye bekleyin.` });
+      return;
+    }
+
+    // 6 Haneli Rastgele Kod Üret
+    const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Veritabanına Kaydet (10 Dk Geçerlilik, 2 Dk Bekleme Süresi)
+    user.resetPasswordCode = resetCode;
+    user.resetPasswordExpire = new Date(Date.now() + 10 * 60 * 1000); 
+    user.resetPasswordCooldown = new Date(Date.now() + 2 * 60 * 1000);
+    await user.save();
+
+    // Mail Gönder
+    const message = `Merhaba ${user.name},\n\nŞifrenizi sıfırlamak için onay kodunuz: ${resetCode}\n\nBu kod 10 dakika boyunca geçerlidir. Şifre sıfırlama talebinde bulunmadıysanız bu e-postayı görmezden gelebilirsiniz.`;
+    
+    await sendEmail({
+      email: user.email,
+      subject: '🔑 Şifre Sıfırlama Kodunuz - DotProposal',
+      message: message,
+    });
+
+    res.status(200).json({ message: 'Sıfırlama kodu e-posta adresinize gönderildi.' });
+  } catch (error) {
+    console.error('Şifre sıfırlama mail hatası:', error);
+    res.status(500).json({ message: 'İşlem sırasında bir hata oluştu.' });
+  }
+};
+
+// 2. KODU DOĞRULAYIP YENİ ŞİFREYİ KAYDETME
+export const resetPassword = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { email, code, newPassword } = req.body;
+
+    // Kullanıcıyı bul ve kodun süresinin geçmediğinden emin ol
+    const user = await User.findOne({
+      email,
+      resetPasswordCode: code,
+      resetPasswordExpire: { $gt: Date.now() } // Şu anki zamandan büyük mü?
+    });
+
+    if (!user) {
+      res.status(400).json({ message: 'Geçersiz veya süresi dolmuş kod girdiniz.' });
+      return;
+    }
+
+    // Yeni şifreyi şifrele (Hash) ve kaydet
+    user.password = newPassword;
+    
+    // Güvenlik: Kullanılmış kodu ve süreleri temizle
+    user.resetPasswordCode = undefined;
+    user.resetPasswordExpire = undefined;
+    user.resetPasswordCooldown = undefined;
+    await user.save();
+
+    res.status(200).json({ message: 'Şifreniz başarıyla güncellendi! Artık giriş yapabilirsiniz.' });
+  } catch (error) {
+    console.error('Şifre güncelleme hatası:', error);
+    res.status(500).json({ message: 'Şifre güncellenirken bir hata oluştu.' });
   }
 };
