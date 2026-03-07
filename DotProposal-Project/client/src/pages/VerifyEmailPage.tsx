@@ -78,29 +78,17 @@ const VerifyEmailPage: React.FC = () => {
           </Box>
         )}
 
-        {status === 'success' && (
+      {status === 'success' && (
           <Box display="flex" flexDirection="column" alignItems="center">
             <CheckCircleOutlineIcon sx={{ fontSize: 80, color: '#4caf50', mb: 2 }} />
             <Typography variant="h5" fontWeight="700" color="text.primary" mb={1}>
-              Harika! Başarıyla Doğrulandı
+              E-posta Adresiniz Doğrulandı!
             </Typography>
-            <Typography variant="body2" color="text.secondary" mb={4}>
-              E-posta adresiniz onaylandı. Artık DotProposal'ın yapay zeka özelliklerini sınırsızca kullanabilirsiniz.
+            <Typography variant="body1" color="text.secondary" mb={4} sx={{ lineHeight: 1.6 }}>
+              Harika! İşleminiz tamamlandı.<br/>
+              Bu sekmeyi güvenle kapatabilir ve asıl açık olan sekmenizden<br/>kaldığınız yerden devam edebilirsiniz.
             </Typography>
-            <Button 
-              variant="contained" 
-              fullWidth
-              size="large"
-              onClick={() => navigate('/wizard')}
-              sx={{ 
-                borderRadius: '50px', 
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                textTransform: 'none',
-                fontWeight: 700,
-              }}
-            >
-              Hemen Teklif Oluştur
-            </Button>
+            {/* Yönlendirme butonunu kaldırdık, çünkü kullanıcı asıl sekmeye dönecek */}
           </Box>
         )}
 

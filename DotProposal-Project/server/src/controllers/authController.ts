@@ -240,3 +240,21 @@ export const resendVerificationEmail = async (req: Request, res: Response): Prom
     res.status(500).json({ message: 'Mail gönderilirken bir hata oluştu.' });
   }
 };
+// 👇 YENİ: MAGIC POLLING (Cihazlar Arası Doğrulama) İÇİN DURUM KONTROLÜ
+export const checkVerificationStatus = async (req: any, res: Response): Promise<void> => {
+  try {
+    // req.user.id bilgisinin kimlik doğrulama middleware'i (verifyToken vb.) 
+    // tarafından isteğe (req) eklendiğini varsayıyoruz.
+    const user = await User.findById(req.user.id); 
+
+    if (!user) {
+      res.status(404).json({ message: 'Kullanıcı bulunamadı.' });
+      return;
+    }
+
+    // Frontend'e sadece kullanıcının onaylanıp onaylanmadığı bilgisini dönüyoruz
+    res.status(200).json({ isVerified: user.isVerified });
+  } catch (error) {
+    res.status(500).json({ message: 'Durum kontrolü sırasında sunucu hatası.' });
+  }
+};

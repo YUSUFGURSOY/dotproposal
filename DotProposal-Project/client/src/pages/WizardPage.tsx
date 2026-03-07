@@ -4,12 +4,10 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { type RootState } from '../app/store';
-// 👇 YENİ: resendVerificationEmail eklendi
 import { resendVerificationEmail } from '../features/auth/authSlice'; 
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios'; 
 import ReactMarkdown from 'react-markdown'; 
-// 👇 YENİ: Bildirimler için eklendi
 import { useSnackbar } from 'notistack'; 
 
 import { 
@@ -32,7 +30,7 @@ import SaveIcon from '@mui/icons-material/Save';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney'; 
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';   
 import SettingsSuggestIcon from '@mui/icons-material/SettingsSuggest'; 
-import MarkEmailUnreadIcon from '@mui/icons-material/MarkEmailUnread'; // YENİ
+import MarkEmailUnreadIcon from '@mui/icons-material/MarkEmailUnread'; 
 import { useTranslation } from 'react-i18next';
 import { createTheme, ThemeProvider, styled, keyframes } from '@mui/material/styles';
 
@@ -347,12 +345,11 @@ const CustomStepper: React.FC<{ steps: string[]; activeStep: number }> = ({ step
 
 // ─── MAIN COMPONENT ────────────────────────────────────────────────────────────
 const WizardPage: React.FC = () => {
-  const dispatch = useDispatch<any>(); // <any> eklendi thunk hatasını önlemek için
+  const dispatch = useDispatch<any>(); 
   const navigate = useNavigate();
-  const { enqueueSnackbar } = useSnackbar(); // Bildirim için
+  const { enqueueSnackbar } = useSnackbar(); 
   
   const { step, clientName, projectDescription, loading, proposalId, status } = useSelector((state: RootState) => state.proposal);
-  // 👇 YENİ: Kullanıcıyı çek
   const { user } = useSelector((state: RootState) => state.auth); 
 
   const { t } = useTranslation();
@@ -362,10 +359,11 @@ const WizardPage: React.FC = () => {
   const [selectedFeatures, setSelectedFeatures] = useState<string[]>([]); 
   const [selectedSections, setSelectedSections] = useState<string[]>([]); 
 
-  // 👇 YENİ: Cooldown State (Saniye cinsinden)
+  // 👇 YENİ: Cooldown ve Yerel Doğrulama State'leri
   const [cooldown, setCooldown] = useState<number>(0);
+  const [isLocallyVerified, setIsLocallyVerified] = useState<boolean>(false);
 
-  // 👇 YENİ: Cooldown Sayacı
+  // Cooldown Sayacı
   useEffect(() => {
     let timer: any;
     if (cooldown > 0) {
@@ -373,6 +371,38 @@ const WizardPage: React.FC = () => {
     }
     return () => clearInterval(timer);
   }, [cooldown]);
+
+  // 👇 YENİ: MAGIC POLLING (Cihazlar Arası Radar)
+  useEffect(() => {
+    let pollingInterval: any;
+
+    // Eğer kullanıcı giriş yapmış, veritabanından (Redux'tan) henüz onaylanmamış ve bu sekmede de onaylanmamışsa
+    if (user && !user.isVerified && !isLocallyVerified) {
+      pollingInterval = setInterval(async () => {
+        try {
+          const token = localStorage.getItem('token');
+          if (!token) return;
+
+          // Arka planda sessizce durumu kontrol et
+          const response = await axios.get('https://dotproposal.onrender.com/api/auth/check-status', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+
+          if (response.data.isVerified) {
+            // ✅ DOĞRULANDI! Duvarı yık ve içeri al!
+            setIsLocallyVerified(true);
+            enqueueSnackbar('Harika! E-posta adresiniz onaylandı. Artık teklif oluşturabilirsiniz!', { variant: 'success' });
+            clearInterval(pollingInterval);
+          }
+        } catch (error) {
+          console.error("Durum radarı hata verdi:", error);
+        }
+      }, 3000); // Her 3 saniyede bir sor
+    }
+
+    return () => clearInterval(pollingInterval);
+  }, [user, isLocallyVerified, enqueueSnackbar]);
+
 
   const availableFeatures = [
     "SEO Optimizasyonu", "Mobil Uyumlu Tasarım", "Yönetim Paneli", "Ödeme Sistemi", 
@@ -418,15 +448,13 @@ const WizardPage: React.FC = () => {
     documentTitle: `Teklif-${clientName || 'Taslak'}`,
   });
 
-  // 👇 YENİ: E-posta Tekrar Gönder Fonksiyonu
   const handleResendEmail = async () => {
     if (cooldown > 0 || !user?.email) return;
     try {
       await dispatch(resendVerificationEmail(user.email)).unwrap();
       enqueueSnackbar('Doğrulama maili tekrar gönderildi. Lütfen gelen kutunuzu kontrol edin.', { variant: 'success' });
-      setCooldown(60); // 60 saniye kilit
+      setCooldown(60); 
     } catch (error: any) {
-      // Backend 429 döndüğünde mesajı gösterecek
       enqueueSnackbar(error || 'Mail gönderilirken bir hata oluştu.', { variant: 'error' });
     }
   };
@@ -538,8 +566,8 @@ const WizardPage: React.FC = () => {
     navigate('/dashboard');
   };
 
-  // 👇 YENİ: EĞER KULLANICI DOĞRULANMAMIŞSA, DUVARI (BLOCK) GÖSTER
-  if (user && !user.isVerified) {
+  // 👇 GÜNCELLEME: Hem Redux state'ine (user.isVerified) hem de radardan gelen onaya (isLocallyVerified) bakıyoruz
+  if (user && !user.isVerified && !isLocallyVerified) {
     return (
       <ThemeProvider theme={theme}>
         <style>{`@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap');`}</style>
@@ -574,6 +602,15 @@ const WizardPage: React.FC = () => {
                 Dashboard'a Dön
               </OutlineButton>
             </Box>
+
+            {/* 👇 YENİ: RADAR GÖRSELLERİ (Kullanıcıya sistemin çalıştığını hissettiriyoruz) */}
+            <Box display="flex" alignItems="center" justifyContent="center" gap={1.5} mt={5} sx={{ opacity: 0.8 }}>
+              <CircularProgress size={16} sx={{ color: '#A3ADF0' }} />
+              <Typography variant="caption" sx={{ fontFamily: '"Sora", sans-serif', color: '#A3ADF0', letterSpacing: '0.05em' }}>
+                Sistem onayı bekliyor, bu sayfa otomatik güncellenecek...
+              </Typography>
+            </Box>
+
           </GlassCard>
         </PageWrapper>
       </ThemeProvider>
