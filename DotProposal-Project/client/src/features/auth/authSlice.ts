@@ -2,7 +2,6 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
 import authService from '../../services/authService';
 import { AxiosError } from 'axios';
-// 👇 BU SATIR EKLENDİ: Store'dan RootState tipini alıyoruz
 import type { RootState } from '../../app/store';
 
 // 1. Kullanıcı Veri Tipi
@@ -11,8 +10,13 @@ export interface User {
   name: string;
   email: string;
   token: string;
-  cvFileName?: string; // Opsiyonel (CV adı)
-  title?: string;      // Opsiyonel (Ünvan)
+  cvFileName?: string; 
+  title?: string;   
+  isVerified?: boolean;   
+}
+interface SuccessResponse {
+  message: string;
+  isVerified?: boolean;
 }
 
 // 2. State Yapısı
@@ -71,7 +75,7 @@ export const registerUser = createAsyncThunk<
   'auth/register',
   async (userData, thunkAPI) => {
     try {
-      return await authService.register(userData);
+      return await authService.register(userData) as User;
     } catch (error) {
       const err = error as AxiosError<BackendError>;
       const message =
@@ -92,7 +96,7 @@ export const loginUser = createAsyncThunk<
   'auth/login',
   async (userData, thunkAPI) => {
     try {
-      return await authService.login(userData);
+      return await authService.login(userData) as User;
     } catch (error) {
       const err = error as AxiosError<BackendError>;
       const message =
@@ -108,19 +112,18 @@ export const loginUser = createAsyncThunk<
 export const updateUserProfile = createAsyncThunk<
   User,
   FormData,
-  { rejectValue: string; state: RootState } // 👈 Artık RootState tanımlı olduğu için hata vermez
+  { rejectValue: string; state: RootState } 
 >(
   'auth/updateProfile',
   async (formData, thunkAPI) => {
     try {
-      // RootState sayesinde TS, auth.user.token yolunu tanıyor
       const token = thunkAPI.getState().auth.user?.token;
       
       if (!token) {
         return thunkAPI.rejectWithValue('Token bulunamadı');
       }
 
-      return await authService.updateProfile(formData, token);
+      return await authService.updateProfile(formData, token) as User;
     } catch (error) {
       const err = error as AxiosError<BackendError>;
       const message =
@@ -131,6 +134,45 @@ export const updateUserProfile = createAsyncThunk<
     }
   }
 );
+
+// 👇 YENİ EKLENENLER (FIX 2: Generic Tipler Eklendi)
+
+// --- ASYNC THUNK: E-POSTA DOĞRULAMA ---
+export const verifyUserEmail = createAsyncThunk<
+  SuccessResponse, // Başarılı dönüş tipi
+  string, // Parametre (token) tipi
+  { rejectValue: string } // Hata dönüş tipi
+>(
+  'auth/verifyEmail',
+  async (token, thunkAPI) => {
+    try { 
+      return await authService.verifyEmail(token); 
+    } catch (error) {
+      const err = error as AxiosError<BackendError>;
+      const message = (err.response && err.response.data && err.response.data.message) || 'Doğrulama başarısız.';
+      return thunkAPI.rejectWithValue(message);
+    }
+  }
+);
+
+// --- ASYNC THUNK: TEKRAR MAİL GÖNDERME ---
+export const resendVerificationEmail = createAsyncThunk<
+  SuccessResponse, 
+  string, 
+  { rejectValue: string }
+>(
+  'auth/resendVerification',
+  async (email, thunkAPI) => {
+    try { 
+      return await authService.resendVerification(email); 
+    } catch (error) {
+      const err = error as AxiosError<BackendError>;
+      const message = (err.response && err.response.data && err.response.data.message) || 'Mail gönderilemedi.';
+      return thunkAPI.rejectWithValue(message);
+    }
+  }
+);
+
 
 export const authSlice = createSlice({
   name: 'auth',
@@ -147,7 +189,6 @@ export const authSlice = createSlice({
       state.user = null;
       state.isAuthenticated = false;
     },
-    // Manuel login aksiyonları (Gerekirse diye tutuyoruz)
     loginStart: (state) => { state.isLoading = true; },
     loginSuccess: (state, action: PayloadAction<User>) => {
       state.isLoading = false;
@@ -215,6 +256,13 @@ export const authSlice = createSlice({
         state.isLoading = false;
         state.isError = true;
         state.message = action.payload || 'Hata oluştu';
+      })
+
+      // 👇 YENİ: DOĞRULAMA BAŞARILIYSA STATE'İ GÜNCELLE
+      .addCase(verifyUserEmail.fulfilled, (state) => {
+        if (state.user) {
+          state.user.isVerified = true;
+        }
       });
   },
 });

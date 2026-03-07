@@ -9,12 +9,16 @@ export interface IUser extends Document {
   password: string;
   cvFileName?: string;
   title?: string;
-  githubLink?: string; // 👇 YENİ EKLENDİ
+  githubLink?: string;
   resetPasswordCode?: string;
   resetPasswordExpire?: Date;
   resetPasswordCooldown?: Date;
+  // 👇 YENİ EKLENENLER (E-posta Doğrulama İçin)
+  isVerified: boolean;
+  verificationToken?: string;
+  verificationCooldown?: Date;
+  // 👆 YENİ EKLENENLER BİTİŞ
   comparePassword(candidatePassword: string): Promise<boolean>;
-  // Mongoose'un isModified fonksiyonunu tanıması için bunu ekliyoruz
   isModified(path: string): boolean;
 }
 
@@ -42,36 +46,44 @@ const userSchema: Schema = new Schema(
       type: String,
       default: 'Freelancer',
     },
-    githubLink: { // 👇 YENİ EKLENDİ
+    githubLink: {
       type: String,
       default: '',
     },
     resetPasswordCode: {
-    type: String,
-  },
-  resetPasswordExpire: {
-    type: Date,
-  },
-  resetPasswordCooldown: {
-    type: Date,
-  }
+      type: String,
+    },
+    resetPasswordExpire: {
+      type: Date,
+    },
+    resetPasswordCooldown: {
+      type: Date,
+    },
+    // 👇 YENİ EKLENENLER
+    isVerified: {
+      type: Boolean,
+      default: false, // İlk kayıtta otomatik false olur
+    },
+    verificationToken: {
+      type: String,
+    },
+    verificationCooldown: {
+      type: Date,
+    }
+    // 👆 YENİ EKLENENLER BİTİŞ
   },
   {
     timestamps: true 
   }
 );
 
-// 3. KAYIT ÖNCESİ ŞİFRELEME (FIX: this Tipi Tanımlandı)
-// Fonksiyonun başında (this: IUser) diyerek TypeScript'e rehberlik ediyoruz.
+// 3. KAYIT ÖNCESİ ŞİFRELEME
 userSchema.pre('save', async function (this: IUser) {
-  
   if (!this.isModified('password')) {
     return;
   }
-  
   try {
     const salt = await bcrypt.genSalt(10);
-    // Artık TypeScript 'this.password'un string olduğunu biliyor.
     this.password = await bcrypt.hash(this.password, salt);
   } catch (error: any) {
     throw new Error(error.message);

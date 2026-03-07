@@ -4,9 +4,9 @@ import User from '../models/User';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { sendEmail } from '../utils/sendEmail';
+import crypto from 'crypto'; // 👇 YENİ: Rastgele güvenli token üretmek için
 
 // Token oluşturucu
-// id parametresini 'any' veya 'string' olarak alabiliriz
 const generateToken = (id: string | any) => {
   return jwt.sign({ id }, process.env.JWT_SECRET || 'gizli_anahtar', {
     expiresIn: '30d',
@@ -29,14 +29,34 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const user = await User.create({ name, email, password });
+    // 👇 YENİ: Güvenli Doğrulama Token'ı Üret
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const verificationCooldown = new Date(Date.now() + 60 * 1000); // 60 saniye bekleme süresi
+
+    const user = await User.create({ 
+      name, 
+      email, 
+      password,
+      verificationToken, // 👇 YENİ: Token'ı veritabanına kaydet
+      verificationCooldown
+    });
 
     if (user) {
+      // 👇 YENİ: Arka planda doğrulama mailini fırlat (beklemeden devam et)
+      const verifyUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/verify-email/${verificationToken}`;
+      const message = `Merhaba ${user.name},\n\nDotProposal'a hoş geldin! Tüm özelliklere (Teklif Sihirbazı vb.) erişebilmek için lütfen aşağıdaki linke tıklayarak e-posta adresini doğrula:\n\n${verifyUrl}\n\nİyi çalışmalar!`;
+      
+      sendEmail({
+        email: user.email,
+        subject: '🚀 DotProposal - E-posta Adresini Doğrula',
+        message: message,
+      }).catch(err => console.error("Kayıt sonrası mail gönderilemedi:", err));
+
       res.status(201).json({
-        _id: user._id, // DÜZELTME: user.id -> user._id
+        _id: user._id, 
         name: user.name,
         email: user.email,
-        // DÜZELTME: ObjectId'yi string'e çeviriyoruz
+        isVerified: user.isVerified, // 👇 YENİ: Frontend'in bilmesi için
         token: generateToken(user._id.toString()), 
       });
     } else {
@@ -55,11 +75,11 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
     if (user && (await user.comparePassword(password))) {
       res.json({
-        _id: user._id, // DÜZELTME: user.id -> user._id
+        _id: user._id, 
         name: user.name,
         email: user.email,
         cvFileName: user.cvFileName, 
-        // DÜZELTME: ObjectId'yi string'e çeviriyoruz
+        isVerified: user.isVerified, // 👇 YENİ: Frontend'in bilmesi için
         token: generateToken(user._id.toString()),
       });
     } else {
@@ -73,8 +93,6 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 // --- GET ME (PROFİL) ---
 export const getMe = async (req: any, res: Response): Promise<void> => {
   try {
-    // req.user.id middleware'den geliyor, orada sorun yoksa burası çalışır.
-    // Ancak User modelinden gelen veride _id kullanılır.
     const user = await User.findById(req.user.id).select('-password');
     res.json(user);
   } catch (error) {
@@ -82,6 +100,7 @@ export const getMe = async (req: any, res: Response): Promise<void> => {
   }
 };
 
+// ... FORGOT PASSWORD VE RESET PASSWORD KODLARI BURADA AYNI KALACAK ...
 // 1. ŞİFRE SIFIRLAMA KODU GÖNDERME
 export const forgotPassword = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -93,23 +112,19 @@ export const forgotPassword = async (req: Request, res: Response): Promise<void>
       return;
     }
 
-    // Cooldown (Spam) Kontrolü
     if (user.resetPasswordCooldown && user.resetPasswordCooldown > new Date()) {
       const remainingSeconds = Math.ceil((user.resetPasswordCooldown.getTime() - Date.now()) / 1000);
       res.status(429).json({ message: `Lütfen yeni bir kod istemeden önce ${remainingSeconds} saniye bekleyin.` });
       return;
     }
 
-    // 6 Haneli Rastgele Kod Üret
     const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // Veritabanına Kaydet (10 Dk Geçerlilik, 2 Dk Bekleme Süresi)
     user.resetPasswordCode = resetCode;
     user.resetPasswordExpire = new Date(Date.now() + 10 * 60 * 1000); 
     user.resetPasswordCooldown = new Date(Date.now() + 2 * 60 * 1000);
     await user.save();
 
-    // Mail Gönder
     const message = `Merhaba ${user.name},\n\nŞifrenizi sıfırlamak için onay kodunuz: ${resetCode}\n\nBu kod 10 dakika boyunca geçerlidir. Şifre sıfırlama talebinde bulunmadıysanız bu e-postayı görmezden gelebilirsiniz.`;
     
     await sendEmail({
@@ -130,11 +145,10 @@ export const resetPassword = async (req: Request, res: Response): Promise<void> 
   try {
     const { email, code, newPassword } = req.body;
 
-    // Kullanıcıyı bul ve kodun süresinin geçmediğinden emin ol
     const user = await User.findOne({
       email,
       resetPasswordCode: code,
-      resetPasswordExpire: { $gt: Date.now() } // Şu anki zamandan büyük mü?
+      resetPasswordExpire: { $gt: Date.now() } 
     });
 
     if (!user) {
@@ -142,10 +156,8 @@ export const resetPassword = async (req: Request, res: Response): Promise<void> 
       return;
     }
 
-    // Yeni şifreyi şifrele (Hash) ve kaydet
     user.password = newPassword;
     
-    // Güvenlik: Kullanılmış kodu ve süreleri temizle
     user.resetPasswordCode = undefined;
     user.resetPasswordExpire = undefined;
     user.resetPasswordCooldown = undefined;
@@ -155,5 +167,76 @@ export const resetPassword = async (req: Request, res: Response): Promise<void> 
   } catch (error) {
     console.error('Şifre güncelleme hatası:', error);
     res.status(500).json({ message: 'Şifre güncellenirken bir hata oluştu.' });
+  }
+};
+
+// 👇 YENİ: E-POSTA DOĞRULAMA KONTROLÜ (Kullanıcı linke tıkladığında çalışır)
+export const verifyEmail = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { token } = req.params;
+
+    const user = await User.findOne({ verificationToken: token });
+
+    if (!user) {
+      res.status(400).json({ message: 'Geçersiz veya süresi dolmuş doğrulama bağlantısı.' });
+      return;
+    }
+
+    user.isVerified = true;
+    user.verificationToken = undefined; // Token'ı temizle (bir daha kullanılmasın)
+    await user.save();
+
+    res.status(200).json({ 
+      message: 'E-posta adresiniz başarıyla doğrulandı!',
+      isVerified: true 
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Doğrulama işlemi sırasında sunucu hatası.' });
+  }
+};
+
+// 👇 YENİ: DOĞRULAMA MAİLİNİ TEKRAR GÖNDERME (60 saniye korumalı)
+export const resendVerificationEmail = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      res.status(404).json({ message: 'Kullanıcı bulunamadı.' });
+      return;
+    }
+
+    if (user.isVerified) {
+      res.status(400).json({ message: 'Bu hesap zaten doğrulanmış.' });
+      return;
+    }
+
+    // Cooldown (Spam) Kontrolü
+    if (user.verificationCooldown && user.verificationCooldown > new Date()) {
+      const remainingSeconds = Math.ceil((user.verificationCooldown.getTime() - Date.now()) / 1000);
+      res.status(429).json({ message: `Lütfen yeni bir mail istemeden önce ${remainingSeconds} saniye bekleyin.` });
+      return;
+    }
+
+    // Yeni Token Üret ve Kaydet
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    user.verificationToken = verificationToken;
+    user.verificationCooldown = new Date(Date.now() + 60 * 1000); // 60 saniye ceza
+    await user.save();
+
+    // Mail Gönder
+    const verifyUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/verify-email/${verificationToken}`;
+    const message = `Merhaba ${user.name},\n\nYeni doğrulama bağlantınız hazır. Lütfen aşağıdaki linke tıklayarak hesabınızı onaylayın:\n\n${verifyUrl}`;
+    
+    await sendEmail({
+      email: user.email,
+      subject: '🔄 DotProposal - Yeni Doğrulama Bağlantısı',
+      message: message,
+    });
+
+    res.status(200).json({ message: 'Doğrulama e-postası tekrar gönderildi.' });
+  } catch (error) {
+    console.error('Doğrulama maili tekrar gönderme hatası:', error);
+    res.status(500).json({ message: 'Mail gönderilirken bir hata oluştu.' });
   }
 };

@@ -43,8 +43,10 @@ import RegisterPage from './pages/RegisterPage';
 import ProfilePage from './pages/ProfilePage';
 import DashboardPage from './pages/DashboardPage';
 import ProposalDetail from './pages/ProposalDetail';
-import PublicProposalPage from './pages/PublicProposalPage'; // İçe aktar
+import PublicProposalPage from './pages/PublicProposalPage'; 
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
+// 👇 YENİ EKLENDİ
+import VerifyEmailPage from './pages/VerifyEmailPage'; 
 
 // --- NAVBAR BİLEŞENİ ---
 const Navbar: React.FC = () => {
@@ -437,12 +439,13 @@ const AnimatedRoutes: React.FC = () => {
         <Route path="/*" element={<PageTransition><NotFoundPage /></PageTransition>} />
         <Route path="/view/:id" element={<PublicProposalPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        {/* 👇 YENİ EKLENDİ */}
+        <Route path="/verify-email/:token" element={<PageTransition><VerifyEmailPage /></PageTransition>} />
       </Routes>
     </AnimatePresence>
   );
 };
 
-// --- YENİ EKLENEN: PREMIUM FOOTER BİLEŞENİ ---
 const Footer: React.FC = () => {
   const { mode } = useSelector((state: RootState) => state.theme);
   const isDark = mode === 'dark';
@@ -634,10 +637,8 @@ function App() {
   );
 }
 
-// 👇 YENİ: Location'ı kullanabilmek için içeriği ayrı bir bileşene aldık
 const MainContent: React.FC = () => {
   const location = useLocation();
-  // Eğer url'de "/view" varsa (Müşteri sayfasıysa), Navbar ve Footer'ı GİZLE
   const isPublicPage = location.pathname.includes('/view/');
 
   return (

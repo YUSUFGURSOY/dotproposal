@@ -4,10 +4,13 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { type RootState } from '../app/store';
+// 👇 YENİ: resendVerificationEmail eklendi
+import { resendVerificationEmail } from '../features/auth/authSlice'; 
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios'; 
 import ReactMarkdown from 'react-markdown'; 
-
+// 👇 YENİ: Bildirimler için eklendi
+import { useSnackbar } from 'notistack'; 
 
 import { 
   nextStep, 
@@ -29,6 +32,7 @@ import SaveIcon from '@mui/icons-material/Save';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney'; 
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';   
 import SettingsSuggestIcon from '@mui/icons-material/SettingsSuggest'; 
+import MarkEmailUnreadIcon from '@mui/icons-material/MarkEmailUnread'; // YENİ
 import { useTranslation } from 'react-i18next';
 import { createTheme, ThemeProvider, styled, keyframes } from '@mui/material/styles';
 
@@ -50,7 +54,7 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           '& .MuiOutlinedInput-root': {
-            background: '#F0F4FF', // Fotoğraftaki gibi beyaz/açık renk input
+            background: '#F0F4FF', 
             borderRadius: 8,
             transition: 'all 0.25s ease',
             '& fieldset': { borderColor: 'transparent' },
@@ -59,7 +63,7 @@ const theme = createTheme({
           },
           '& .MuiInputLabel-root': { color: '#666666' },
           '& .MuiInputLabel-root.Mui-focused': { color: '#6C78D6' },
-          '& .MuiOutlinedInput-input': { color: '#222222' }, // Açık zemin üzerine koyu yazı
+          '& .MuiOutlinedInput-input': { color: '#222222' }, 
         },
       },
     },
@@ -91,12 +95,9 @@ const rotateSlow = keyframes`
   to   { transform: rotate(360deg); }
 `;
 
-
-
 // ─── STYLED COMPONENTS ────────────────────────────────────────────────────────
 const PageWrapper = styled(Box)({
   minHeight: '100vh',
-  // Fotoğraftaki ana arkaplan gradyanı (Maviden mora)
   background: 'linear-gradient(135deg, #6773d4 0%, #7e529d 100%)',
   display: 'flex',
   alignItems: 'flex-start',
@@ -125,7 +126,6 @@ const PageWrapper = styled(Box)({
 });
 
 const GlassCard = styled(Paper)({
-  // Fotoğraftaki belirgin transparan kart görünümü
   background: 'rgba(255,255,255,0.15)',
   backdropFilter: 'blur(24px)',
   WebkitBackdropFilter: 'blur(24px)',
@@ -153,10 +153,10 @@ const StyledStep = styled(Box)<{ active?: string; completed?: string }>(({ activ
   alignItems: 'center',
   gap: 8,
   flex: 1,
-  // Örnek kullanım:
   opacity: active === 'true' ? 1 : 0.5,
   color: completed === 'true' ? 'green' : 'inherit',
 }));
+
 const StepCircle = styled(Box)<{ active?: number; completed?: number }>(({ active, completed }) => ({
   width: 40,
   height: 40,
@@ -201,7 +201,6 @@ const FeatureChip = styled(FormControlLabel)<{ checked?: boolean }>(({ checked }
 }));
 
 const PrimaryButton = styled(Button)({
-  // Fotoğraftaki buton gradyanı
   background: 'linear-gradient(90deg, #6C78D6 0%, #7B529E 100%)',
   color: '#fff',
   borderRadius: 8,
@@ -348,16 +347,32 @@ const CustomStepper: React.FC<{ steps: string[]; activeStep: number }> = ({ step
 
 // ─── MAIN COMPONENT ────────────────────────────────────────────────────────────
 const WizardPage: React.FC = () => {
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<any>(); // <any> eklendi thunk hatasını önlemek için
   const navigate = useNavigate();
+  const { enqueueSnackbar } = useSnackbar(); // Bildirim için
+  
   const { step, clientName, projectDescription, loading, proposalId, status } = useSelector((state: RootState) => state.proposal);
+  // 👇 YENİ: Kullanıcıyı çek
+  const { user } = useSelector((state: RootState) => state.auth); 
+
   const { t } = useTranslation();
 
   const [aiResult, setAiResult] = useState<string>('');
-
   const [hourlyRate, setHourlyRate] = useState<string>(''); 
   const [selectedFeatures, setSelectedFeatures] = useState<string[]>([]); 
   const [selectedSections, setSelectedSections] = useState<string[]>([]); 
+
+  // 👇 YENİ: Cooldown State (Saniye cinsinden)
+  const [cooldown, setCooldown] = useState<number>(0);
+
+  // 👇 YENİ: Cooldown Sayacı
+  useEffect(() => {
+    let timer: any;
+    if (cooldown > 0) {
+      timer = setInterval(() => setCooldown((c) => c - 1), 1000);
+    }
+    return () => clearInterval(timer);
+  }, [cooldown]);
 
   const availableFeatures = [
     "SEO Optimizasyonu", "Mobil Uyumlu Tasarım", "Yönetim Paneli", "Ödeme Sistemi", 
@@ -403,6 +418,19 @@ const WizardPage: React.FC = () => {
     documentTitle: `Teklif-${clientName || 'Taslak'}`,
   });
 
+  // 👇 YENİ: E-posta Tekrar Gönder Fonksiyonu
+  const handleResendEmail = async () => {
+    if (cooldown > 0 || !user?.email) return;
+    try {
+      await dispatch(resendVerificationEmail(user.email)).unwrap();
+      enqueueSnackbar('Doğrulama maili tekrar gönderildi. Lütfen gelen kutunuzu kontrol edin.', { variant: 'success' });
+      setCooldown(60); // 60 saniye kilit
+    } catch (error: any) {
+      // Backend 429 döndüğünde mesajı gösterecek
+      enqueueSnackbar(error || 'Mail gönderilirken bir hata oluştu.', { variant: 'error' });
+    }
+  };
+
  const handleAIAnalysis = async () => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -412,7 +440,7 @@ const WizardPage: React.FC = () => {
     }
 
     dispatch(setLoading(true));
-    dispatch(setProposalStatus('pending')); // Bekleme modunu aktifleştir
+    dispatch(setProposalStatus('pending')); 
     
     try {
         const payload = {
@@ -432,10 +460,8 @@ const WizardPage: React.FC = () => {
             }
         });
 
-        // YENİ MİMARİ: Backend'i beklemiyoruz, sadece gelen kuyruk ID'sini kaydediyoruz
         if (response.data && response.data.proposalId) {
             dispatch(setProposalId(response.data.proposalId)); 
-            // NOT: Burada nextStep() YAPMIYORUZ. Sonuç gelince polling yapacak.
         }
 
     } catch (error: any) {
@@ -453,15 +479,11 @@ const WizardPage: React.FC = () => {
     }
   };
 
-  // YENİ EKLENEN POLLING MANTIĞI
-  // YENİ EKLENEN POLLING MANTIĞI (GÜNCELLENDİ)
   const [insights, setInsights] = useState<string[]>([])
   useEffect(() => {
-    
     let intervalId: ReturnType<typeof setInterval>;
 
     const checkProposalStatus = async () => {
-      // Eğer ID yoksa veya işlem zaten bitmişse kontrol etme
       if (!proposalId || status === 'completed') return;
 
       try {
@@ -472,31 +494,29 @@ const WizardPage: React.FC = () => {
 
         const data = response.data;
         
-        // Backend "completed" dediyse VEYA gelen metin taslak metinden farklıysa (AI doldurduysa)
         const isCompleted = data.status === 'completed' || 
                            (data.generatedCoverLetter && data.generatedCoverLetter !== 'Yapay zeka teklifinizi hazırlıyor, lütfen bekleyin...');
 
         if (isCompleted) {
-          clearInterval(intervalId); // Sormayı bırak
+          clearInterval(intervalId); 
           dispatch(setProposalStatus('completed'));
-          setAiResult(data.generatedCoverLetter); // Gemini metnini ekrana bas
+          setAiResult(data.generatedCoverLetter); 
           setInsights(data.aiInsights || []);
-          dispatch(setLoading(false)); // Yükleme animasyonunu durdur
-          dispatch(nextStep()); // Otomatik olarak Step 2'ye (Sonuç Sayfasına) geç
-          dispatch(setProposalId(null)); // ID'yi temizle
+          dispatch(setLoading(false)); 
+          dispatch(nextStep()); 
+          dispatch(setProposalId(null)); 
         }
       } catch (error) {
         console.error("Durum sorgulama hatası:", error);
       }
     };
 
-    // Eğer bir ID'miz varsa ve durum 'pending' ise 3 saniyede bir kontrol et
     if (proposalId && status === 'pending') {
       intervalId = setInterval(checkProposalStatus, 3000);
     }
 
     return () => {
-      if (intervalId) clearInterval(intervalId); // Component kapanırsa intervali temizle
+      if (intervalId) clearInterval(intervalId); 
     };
   }, [proposalId, status, dispatch]);
 
@@ -518,9 +538,51 @@ const WizardPage: React.FC = () => {
     navigate('/dashboard');
   };
 
+  // 👇 YENİ: EĞER KULLANICI DOĞRULANMAMIŞSA, DUVARI (BLOCK) GÖSTER
+  if (user && !user.isVerified) {
+    return (
+      <ThemeProvider theme={theme}>
+        <style>{`@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap');`}</style>
+        <PageWrapper>
+          <GlassCard elevation={0} sx={{ textAlign: 'center', py: 8 }}>
+            <Box sx={{
+              width: 80, height: 80, mx: 'auto', mb: 3,
+              borderRadius: '50%', background: 'rgba(108,120,214,0.1)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              border: '1px solid rgba(108,120,214,0.3)'
+            }}>
+              <MarkEmailUnreadIcon sx={{ fontSize: 40, color: '#A3ADF0' }} />
+            </Box>
+            
+            <GradientTitle variant="h4" mb={2}>
+              E-posta Adresini Doğrula
+            </GradientTitle>
+            
+            <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.7)', fontFamily: '"Sora", sans-serif', maxWidth: 400, mx: 'auto', mb: 5, lineHeight: 1.6 }}>
+              DotProposal'ın yapay zeka gücüyle teklif oluşturabilmek için lütfen kayıt olurken gönderdiğimiz e-postadaki doğrulama linkine tıklayın.
+            </Typography>
+
+            <Box display="flex" flexDirection="column" gap={2} alignItems="center">
+              <PrimaryButton 
+                onClick={handleResendEmail} 
+                disabled={cooldown > 0}
+                sx={{ width: 280 }}
+              >
+                {cooldown > 0 ? `Tekrar göndermek için ${cooldown}sn bekle` : 'Doğrulama Mailini Tekrar Gönder'}
+              </PrimaryButton>
+              <OutlineButton onClick={() => navigate('/dashboard')} sx={{ width: 280 }}>
+                Dashboard'a Dön
+              </OutlineButton>
+            </Box>
+          </GlassCard>
+        </PageWrapper>
+      </ThemeProvider>
+    );
+  }
+
+  // 👇 KULLANICI DOĞRULANMIŞSA NORMAL WIZARD'I GÖSTER
   return (
     <ThemeProvider theme={theme}>
-      {/* Google Font Import */}
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap');`}</style>
 
       <PageWrapper>
@@ -711,28 +773,26 @@ const WizardPage: React.FC = () => {
                 
               <Box sx={{ animation: `${fadeUp} 0.4s ease both` }}>
                 {/* 🤖 AI STRATEJİK TAVSİYELER PANELİ */}
-    {insights && insights.length > 0 && (
-      <InsightCard>
-        <Box display="flex" alignItems="center" gap={1.5} mb={2}>
-          <SettingsSuggestIcon sx={{ color: '#A3ADF0' }} />
-          <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#A3ADF0', letterSpacing: '0.05em', textTransform: 'uppercase', fontSize: 12 }}>
-            Sana Özel Stratejik Tavsiyeler (Gizli)
-          </Typography>
-        </Box>
-        <Box display="flex" flexDirection="column" gap={1.5}>
-          {insights.map((insight, idx) => (
-            <Box key={idx} display="flex" gap={1.5} alignItems="flex-start">
-              <Box sx={{ mt: 0.8, width: 6, height: 6, borderRadius: '50%', background: '#6C78D6', flexShrink: 0 }} />
-              <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)', fontSize: 13, lineHeight: 1.5, fontFamily: '"Sora", sans-serif' }}>
-                {insight}
-              </Typography>
-            </Box>
-          ))}
-        </Box>
-      </InsightCard>
-    )}
-
-    {/* Mevcut Header (Teklifiniz Hazır kısmı) burdan devam edecek... */}
+                {insights && insights.length > 0 && (
+                  <InsightCard>
+                    <Box display="flex" alignItems="center" gap={1.5} mb={2}>
+                      <SettingsSuggestIcon sx={{ color: '#A3ADF0' }} />
+                      <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#A3ADF0', letterSpacing: '0.05em', textTransform: 'uppercase', fontSize: 12 }}>
+                        Sana Özel Stratejik Tavsiyeler (Gizli)
+                      </Typography>
+                    </Box>
+                    <Box display="flex" flexDirection="column" gap={1.5}>
+                      {insights.map((insight, idx) => (
+                        <Box key={idx} display="flex" gap={1.5} alignItems="flex-start">
+                          <Box sx={{ mt: 0.8, width: 6, height: 6, borderRadius: '50%', background: '#6C78D6', flexShrink: 0 }} />
+                          <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)', fontSize: 13, lineHeight: 1.5, fontFamily: '"Sora", sans-serif' }}>
+                            {insight}
+                          </Typography>
+                        </Box>
+                      ))}
+                    </Box>
+                  </InsightCard>
+                )}
                 
                 <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={3} flexWrap="wrap" gap={2}>
                   <Box>
