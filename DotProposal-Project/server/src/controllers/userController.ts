@@ -9,12 +9,13 @@ export const updateProfile = async (req: AuthRequest, res: Response) => {
     const user = await User.findById(req.user._id);
 
     if (user) {
+      // Gelen verileri al (Eğer boşsa eskisini koru)
       user.name = req.body.name || user.name;
       user.email = req.body.email || user.email;
       user.title = req.body.title || user.title; 
       user.githubLink = req.body.githubLink || user.githubLink; 
 
-      // 👇 YENİ: ONBOARDING DURUMUNU KAYDET (Eğer frontend'den gönderildiyse)
+      // ONBOARDING DURUMUNU KAYDET 
       if (req.body.hasCompletedOnboarding !== undefined) {
         user.hasCompletedOnboarding = req.body.hasCompletedOnboarding === 'true' || req.body.hasCompletedOnboarding === true;
       }
@@ -36,7 +37,8 @@ export const updateProfile = async (req: AuthRequest, res: Response) => {
         title: updatedUser.title,
         cvFileName: updatedUser.cvFileName,
         githubLink: updatedUser.githubLink, 
-        hasCompletedOnboarding: updatedUser.hasCompletedOnboarding, // 👇 YENİ
+        hasCompletedOnboarding: updatedUser.hasCompletedOnboarding,
+        isVerified: updatedUser.isVerified, // 👇 İŞTE SİHİRLİ DOKUNUŞ: Frontend artık bunu unutmayacak!
         token: req.headers.authorization?.split(' ')[1] 
       });
     } else {
@@ -59,7 +61,9 @@ export const getProfile = async (req: AuthRequest, res: Response) => {
         email: user.email,
         title: user.title,
         cvFileName: user.cvFileName,
-        githubLink: user.githubLink 
+        githubLink: user.githubLink,
+        hasCompletedOnboarding: user.hasCompletedOnboarding, // Buralara da sağlama amaçlı ekledik
+        isVerified: user.isVerified 
       });
     } else {
       res.status(404).json({ message: 'Kullanıcı bulunamadı' });
