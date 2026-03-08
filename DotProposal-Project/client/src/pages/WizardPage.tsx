@@ -4,8 +4,8 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { type RootState } from '../app/store';
-// 👇 EKLENEN THUNK
-import { resendVerificationEmail, updateUserProfile } from '../features/auth/authSlice'; 
+// 👇 EKLENEN THUNK (loginSuccess Redux state'ini manuel güncellemek için eklendi)
+import { resendVerificationEmail, updateUserProfile, loginSuccess } from '../features/auth/authSlice'; 
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios'; 
 import ReactMarkdown from 'react-markdown'; 
@@ -23,7 +23,7 @@ import {
 import { 
     Paper, Button, Typography, TextField, Box, 
     CircularProgress, Divider, FormGroup, FormControlLabel, Checkbox, InputAdornment,
-    Accordion, AccordionSummary, AccordionDetails, Dialog, DialogContent // 👇 Dialog importu eklendi
+    Accordion, AccordionSummary, AccordionDetails, Dialog, DialogContent
 } from '@mui/material';
 import { useReactToPrint } from 'react-to-print';
 import PrintIcon from '@mui/icons-material/Print';
@@ -363,9 +363,11 @@ const WizardPage: React.FC = () => {
   const [cooldown, setCooldown] = useState<number>(0);
   const [isLocallyVerified, setIsLocallyVerified] = useState<boolean>(false);
 
-  // 👇 YENİ: AKILLI ÖĞRETİCİ (TUTORIAL) STATE'LERİ
+  // AKILLI ÖĞRETİCİ (TUTORIAL) STATE'LERİ
   const [tutorialStep, setTutorialStep] = useState(0);
   const [showTutorial, setShowTutorial] = useState(false);
+  // 👇 YENİ: "Bir Daha Gösterme" checkbox state'i
+  const [dontShowAgain, setDontShowAgain] = useState(false);
 
   // Cooldown Sayacı
   useEffect(() => {
@@ -390,9 +392,16 @@ const WizardPage: React.FC = () => {
             headers: { 'Authorization': `Bearer ${token}` }
           });
 
+          // 👇 GÜNCELLENEN: Döngüyü kıran kesin çözüm (Kalıcı hafıza)
           if (response.data.isVerified) {
             setIsLocallyVerified(true);
             enqueueSnackbar('Harika! E-posta adresiniz onaylandı. Artık teklif oluşturabilirsiniz!', { variant: 'success' });
+            
+            // Kullanıcının isVerified değerini true yapıp kalıcı olarak localStorage'a ve Redux'a basıyoruz
+            const updatedUser = { ...user, isVerified: true };
+            localStorage.setItem('user', JSON.stringify(updatedUser));
+            dispatch(loginSuccess(updatedUser)); 
+
             clearInterval(pollingInterval);
           }
         } catch (error) {
@@ -402,14 +411,13 @@ const WizardPage: React.FC = () => {
     }
 
     return () => clearInterval(pollingInterval);
-  }, [user, isLocallyVerified, enqueueSnackbar]);
+  }, [user, isLocallyVerified, enqueueSnackbar, dispatch]);
 
   
- // 👇 GÜNCELLENEN: KULLANICI DOĞRULANMIŞSA VE ÖĞRETİCİYİ GEÇMEMİŞSE MODALI AÇ
+ // KULLANICI DOĞRULANMIŞSA VE ÖĞRETİCİYİ GEÇMEMİŞSE MODALI AÇ
   useEffect(() => {
     const isUserVerified = user?.isVerified || isLocallyVerified;
     if (user && isUserVerified && !user.hasCompletedOnboarding) {
-      // 👇 ESLint "Cascading renders" hatasını önlemek için işlemi React'ın kuyruğuna (asenkron) atıyoruz
       setTimeout(() => {
         setShowTutorial(true);
       }, 0);
@@ -429,7 +437,6 @@ const WizardPage: React.FC = () => {
     { id: 'takvim', label: '5. Proje Takvimi' }
   ];
 
-  // 👇 YENİ: ÖĞRETİCİ SLAYTLARI
   const tutorialSlides = [
     { title: "🚀 DotProposal'a Hoş Geldin!", desc: "Saniyeler içinde profesyonel teklifler oluşturmaya hazır mısın? Yapay zeka asistanın senin için tüm iş kalemlerini ve bütçeyi planlayacak." },
     { title: "✍️ Proje Detaylarını Gir", desc: "Müşteri adını ve projenin kısa bir özetini yaz. İstersen gelişmiş seçeneklerden saatlik ücretini ve özelliklerini seçebilirsin." },
@@ -442,12 +449,15 @@ const WizardPage: React.FC = () => {
     }
   };
 
+  // 👇 GÜNCELLENEN: Eğer checkbox işaretliyse veritabanına kalıcı olarak kaydet
   const finishTutorial = () => {
     setShowTutorial(false);
-    // Veritabanına "bir daha gösterme" bilgisini kaydet
-    const formData = new FormData();
-    formData.append('hasCompletedOnboarding', 'true');
-    dispatch(updateUserProfile(formData));
+    
+    if (dontShowAgain) {
+      const formData = new FormData();
+      formData.append('hasCompletedOnboarding', 'true');
+      dispatch(updateUserProfile(formData));
+    }
   };
 
   const handleFeatureChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -652,7 +662,7 @@ const WizardPage: React.FC = () => {
     <ThemeProvider theme={theme}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap');`}</style>
 
-      {/* 👇 YENİ: AKILLI ÖĞRETİCİ MODALI */}
+      {/* 👇 GÜNCELLENEN: AKILLI ÖĞRETİCİ MODALI VE CHECKBOX */}
       <Dialog 
         open={showTutorial} 
         maxWidth="sm" 
@@ -665,11 +675,12 @@ const WizardPage: React.FC = () => {
           <Typography variant="h5" fontWeight="bold" mb={2} sx={{ fontFamily: '"Sora", sans-serif' }}>
             {tutorialSlides[tutorialStep].title}
           </Typography>
-          <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.7)', mb: 5, fontFamily: '"Sora", sans-serif', lineHeight: 1.6 }}>
+          <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.7)', mb: 4, fontFamily: '"Sora", sans-serif', lineHeight: 1.6 }}>
             {tutorialSlides[tutorialStep].desc}
           </Typography>
 
-          <Box display="flex" justifyContent="center" gap={1} mb={5}>
+          {/* Slayt Noktaları */}
+          <Box display="flex" justifyContent="center" gap={1} mb={4}>
             {tutorialSlides.map((_, idx) => (
               <Box 
                 key={idx} 
@@ -684,16 +695,32 @@ const WizardPage: React.FC = () => {
             ))}
           </Box>
 
+          {/* 👇 YENİ: "Bir Daha Gösterme" Kutusu (Sadece Son Slaytta Çıkar) */}
+          {tutorialStep === tutorialSlides.length - 1 && (
+            <Box display="flex" justifyContent="center" mb={3}>
+              <FormControlLabel
+                control={
+                  <Checkbox 
+                    checked={dontShowAgain} 
+                    onChange={(e) => setDontShowAgain(e.target.checked)} 
+                    sx={{ color: 'rgba(255,255,255,0.5)', '&.Mui-checked': { color: '#6C78D6' } }}
+                  />
+                }
+                label={<Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.8)', fontFamily: '"Sora", sans-serif' }}>Bir daha gösterme</Typography>}
+              />
+            </Box>
+          )}
+
           <Box display="flex" gap={2} justifyContent="center">
             {tutorialStep < tutorialSlides.length - 1 ? (
               <PrimaryButton onClick={handleTutorialNext} sx={{ width: '200px' }}>İleri →</PrimaryButton>
             ) : (
-              <PrimaryButton onClick={finishTutorial} sx={{ width: '200px' }}>Tekrar Gösterme / Başla</PrimaryButton>
+              <PrimaryButton onClick={finishTutorial} sx={{ width: 'auto', px: 4 }}>Haydi Hemen Teklif Oluştur 🚀</PrimaryButton>
             )}
           </Box>
         </DialogContent>
       </Dialog>
-      {/* 👆 YENİ BİTİŞ */}
+      {/* 👆 BİTİŞ */}
 
       <PageWrapper>
         <GlassCard elevation={0}>
