@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 import joblib
 import re
+import traceback # 👈 DETAYLI HATA TAKİBİ İÇİN EKLENDİ
 
 # API Uygulamasını Başlat
 app = FastAPI(title="DotProposal AI Engine")
@@ -31,16 +32,25 @@ def clean_text(text):
 async def predict_budget(req: ProjectRequest):
     try:
         cleaned_text = clean_text(req.description)
-        print(f"Gelen Metin: {cleaned_text[:50]}...") # 👈 LOG EKLEDİK
+        print(f"\n[DEBUG] Gelen Temiz Metin: '{cleaned_text[:100]}...' (Uzunluk: {len(cleaned_text)})")
+        
+        # 🛡️ KALKAN: Metin çok kısaysa model matematiksel olarak 0 veya hata döner
+        if len(cleaned_text) < 10:
+             print("[DEBUG] ⚠️ Metin çok kısa, varsayılan taban fiyat uygulanıyor.")
+             return {"success": True, "estimated_budget": 50.0}
         
         text_vector = vectorizer.transform([cleaned_text])
         prediction = model.predict(text_vector)[0]
         
-        print(f"Tahmin Sonucu: {prediction}") # 👈 LOG EKLEDİK
+        # 🛡️ KALKAN: Numpy tipinden standart float tipine çeviriyoruz (JSON serileştirme hatasını önler)
+        final_prediction = float(prediction)
         
-        return {"success": True, "estimated_budget": round(float(prediction), 2)}
+        print(f"[DEBUG] 🤖 AI Tahmini Yapıldı: {final_prediction} USD")
+        
+        return {"success": True, "estimated_budget": round(final_prediction, 2)}
     except Exception as e:
-        print(f"⚠️ Tahmin Hatası: {e}") # 👈 HATAYI YAKALA
+        print(f"[DEBUG] ❌ Tahmin Hatası Meydana Geldi:")
+        print(traceback.format_exc()) # 👈 HATANIN HANGİ SATIRDA OLDUĞUNU KABAK GİBİ GÖSTERİR
         return {"success": False, "estimated_budget": 0, "error": str(e)}
 
 # Sunucu çalıştığını test etmek için basit bir GET rotası

@@ -6,7 +6,7 @@ import Proposal from '../models/Proposal';
 import User from '../models/User'; 
 import { sendEmail } from '../utils/sendEmail'; 
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import axios from 'axios'; // 👇 YENİ: Python servisine bağlanmak için eklendi
+import axios from 'axios'; 
 import dotenv from 'dotenv'; 
 dotenv.config();
 
@@ -21,26 +21,37 @@ export const createProposal = async (req: AuthRequest, res: Response): Promise<v
     let aiEstimatedHours = 0;
 
     try {
-      // Python FastAPI servisine (ai-service) bağlanıyoruz
-      const aiResponse = await axios.post('http://localhost:8000/api/predict', {
-        description: jobDescription
+      console.log(`\n[AI-RADAR] Python servisine istek atılıyor. Metin uzunluğu: ${jobDescription?.length || 0}`);
+      
+      const aiResponse = await axios.post('https://dotproposal-ai.onrender.com/api/predict', {
+        description: jobDescription || 'Taslak Açıklama'
       });
 
+      console.log("[AI-RADAR] Python'dan dönen ham cevap:", aiResponse.data);
+
       if (aiResponse.data.success) {
-        aiEstimatedBudget = aiResponse.data.estimated_budget;
+        // 🛡️ KALKAN: Gelen veriyi kesinlikle sayıya (Number) çevir
+        aiEstimatedBudget = Number(aiResponse.data.estimated_budget) || 0;
+        console.log(`[AI-RADAR] İşlenmiş Bütçe: $${aiEstimatedBudget}`);
 
         // 👇 2. ADIM: SENİN "SİHİRLİ SAAT" ALGORİTMAN (HİBRİD ZEKA)
         const user = await User.findById(userId);
-        const userHourlyRate = user?.hourlyRate || 0;
+        const userHourlyRate = Number(user?.hourlyRate) || 0;
+        console.log(`[AI-RADAR] Kullanıcı Saatlik Ücreti: $${userHourlyRate}`);
 
-        if (userHourlyRate > 0) {
-          // Formül: Toplam Bütçe / Kullanıcının Saatlik Ücreti
+        if (userHourlyRate > 0 && aiEstimatedBudget > 0) {
           aiEstimatedHours = Math.ceil(aiEstimatedBudget / userHourlyRate);
+        } else {
+          // Eğer bütçe varsa ama kullanıcının saatlik ücreti yoksa en az 1 saat yaz
+          aiEstimatedHours = aiEstimatedBudget > 0 ? 1 : 0;
         }
+        console.log(`[AI-RADAR] Hesaplanmış Efor: ${aiEstimatedHours} Saat`);
       }
-    } catch (aiPredictError) {
-      console.error("AI Servis bağlantı hatası (Tahmin alınamadı):", aiPredictError);
-      // Hata olsa bile ana akış bozulmasın diye sessizce devam ediyoruz
+    } catch (aiPredictError: any) {
+      console.error("[AI-RADAR] ❌ Python Servis Bağlantı Hatası:", aiPredictError.message);
+      if(aiPredictError.response) {
+         console.error("[AI-RADAR] Detaylı Hata:", aiPredictError.response.data);
+      }
     }
 
     // 1. Veritabanında "pending" (bekliyor) durumunda bir taslak kayıt oluştur
@@ -51,7 +62,6 @@ export const createProposal = async (req: AuthRequest, res: Response): Promise<v
       jobDescription: jobDescription || 'Taslak İş Açıklaması',
       generatedCoverLetter: 'Yapay zeka teklifinizi hazırlıyor, lütfen bekleyin...', 
       
-      // 👇 YENİ VERİLER: Eğittiğin modelden gelen sonuçları kaydediyoruz
       aiEstimatedBudget: aiEstimatedBudget,
       aiEstimatedHours: aiEstimatedHours,
       
@@ -67,7 +77,6 @@ export const createProposal = async (req: AuthRequest, res: Response): Promise<v
         res.status(200).json({
           message: 'Teklifiniz başarıyla oluşturuldu!',
           proposalId: newProposal._id,
-          // 👇 Frontend'in anında kart göstermesi için bu verileri de dönüyoruz
           aiAnalysis: {
             budget: aiEstimatedBudget,
             hours: aiEstimatedHours
