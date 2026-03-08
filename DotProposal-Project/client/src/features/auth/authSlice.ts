@@ -13,7 +13,6 @@ export interface User {
   cvFileName?: string; 
   title?: string;   
   isVerified?: boolean; 
-  // 👇 YENİ EKLENEN
   hasCompletedOnboarding?: boolean; 
 }
 interface SuccessResponse {
@@ -278,6 +277,8 @@ export const authSlice = createSlice({
         state.isSuccess = true;
         state.user = action.payload;
         state.message = 'Profil güncellendi!';
+        // 👇 İŞTE SİHİRLİ DOKUNUŞ 1: Backend'den gelen güncel profili KESİNLİKLE tarayıcıya kazı!
+        localStorage.setItem('user', JSON.stringify(action.payload));
       })
       .addCase(updateUserProfile.rejected, (state, action) => {
         state.isLoading = false;

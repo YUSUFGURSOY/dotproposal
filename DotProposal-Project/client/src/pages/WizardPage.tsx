@@ -4,8 +4,8 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { type RootState } from '../app/store';
-// 👇 EKLENEN THUNK (loginSuccess Redux state'ini manuel güncellemek için eklendi)
-import { resendVerificationEmail, updateUserProfile, loginSuccess } from '../features/auth/authSlice'; 
+// 👇 EKLENEN IMPORT: updateProfile (Senkron güncelleme)
+import { resendVerificationEmail, updateUserProfile, loginSuccess, updateProfile } from '../features/auth/authSlice'; 
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios'; 
 import ReactMarkdown from 'react-markdown'; 
@@ -366,10 +366,8 @@ const WizardPage: React.FC = () => {
   // AKILLI ÖĞRETİCİ (TUTORIAL) STATE'LERİ
   const [tutorialStep, setTutorialStep] = useState(0);
   const [showTutorial, setShowTutorial] = useState(false);
-  // 👇 YENİ: "Bir Daha Gösterme" checkbox state'i
   const [dontShowAgain, setDontShowAgain] = useState(false);
 
-  // Cooldown Sayacı
   useEffect(() => {
     let timer: any;
     if (cooldown > 0) {
@@ -449,14 +447,22 @@ const WizardPage: React.FC = () => {
     }
   };
 
-  // 👇 GÜNCELLENEN: Eğer checkbox işaretliyse veritabanına kalıcı olarak kaydet
+  // 👇 İŞTE SİHİRLİ DOKUNUŞ 2: Checkbox KESİN ÇÖZÜM
   const finishTutorial = () => {
     setShowTutorial(false);
     
     if (dontShowAgain) {
+      // 1. Backend'e kalıcı kayıt gönder
       const formData = new FormData();
       formData.append('hasCompletedOnboarding', 'true');
       dispatch(updateUserProfile(formData));
+
+      // 2. Beklemeden anında Frontend'i (LocalStorage + Redux) mühürle!
+      if (user) {
+        const updatedUser = { ...user, hasCompletedOnboarding: true };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        dispatch(updateProfile({ hasCompletedOnboarding: true })); 
+      }
     }
   };
 
@@ -662,7 +668,7 @@ const WizardPage: React.FC = () => {
     <ThemeProvider theme={theme}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap');`}</style>
 
-      {/* 👇 GÜNCELLENEN: AKILLI ÖĞRETİCİ MODALI VE CHECKBOX */}
+      {/* AKILLI ÖĞRETİCİ MODALI VE CHECKBOX */}
       <Dialog 
         open={showTutorial} 
         maxWidth="sm" 
@@ -695,7 +701,7 @@ const WizardPage: React.FC = () => {
             ))}
           </Box>
 
-          {/* 👇 YENİ: "Bir Daha Gösterme" Kutusu (Sadece Son Slaytta Çıkar) */}
+          {/* "Bir Daha Gösterme" Kutusu (Sadece Son Slaytta Çıkar) */}
           {tutorialStep === tutorialSlides.length - 1 && (
             <Box display="flex" justifyContent="center" mb={3}>
               <FormControlLabel
@@ -720,7 +726,6 @@ const WizardPage: React.FC = () => {
           </Box>
         </DialogContent>
       </Dialog>
-      {/* 👆 BİTİŞ */}
 
       <PageWrapper>
         <GlassCard elevation={0}>
