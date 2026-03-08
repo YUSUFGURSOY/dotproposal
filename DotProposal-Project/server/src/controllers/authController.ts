@@ -290,10 +290,17 @@ export const checkVerificationStatus = async (req: any, res: Response): Promise<
   }
 };
 
-// 👇 YENİ: HESAP SİLME (DANGER ZONE)
+// 👇 GÜNCELLENDİ: HESAP SİLME (DANGER ZONE - TOKEN KONTROLLÜ)
 export const deleteAccount = async (req: any, res: Response): Promise<void> => {
   try {
-    const userId = req.user?.id; // Kimlik doğrulama middleware'inden (protect) gelecek
+    let userId = req.user?.id;
+
+    // 👇 EKSİK OLAN SİHİRLİ KISIM: Frontend'den gelen token'ı kendimiz çözüyoruz!
+    if (!userId && req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+      const token = req.headers.authorization.split(' ')[1];
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'gizli_anahtar') as any;
+      userId = decoded.id;
+    }
 
     if (!userId) {
       res.status(401).json({ message: 'Yetkisiz erişim. Token bulunamadı.' });
@@ -307,9 +314,7 @@ export const deleteAccount = async (req: any, res: Response): Promise<void> => {
       return;
     }
 
-    // İPUCU: Eğer ileride kullanıcının oluşturduğu teklifleri (proposals) de silmek istersen 
-    // buraya "await Proposal.deleteMany({ user: userId });" ekleyebilirsin.
-
+    // Kullanıcıyı veritabanından kalıcı olarak sil
     await User.findByIdAndDelete(userId);
 
     res.status(200).json({ message: 'Hesabınız ve tüm verileriniz başarıyla silindi.' });
