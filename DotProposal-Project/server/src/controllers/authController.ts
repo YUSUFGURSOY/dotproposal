@@ -289,3 +289,32 @@ export const checkVerificationStatus = async (req: any, res: Response): Promise<
     res.status(500).json({ message: 'Durum kontrolü sırasında sunucu hatası.' });
   }
 };
+
+// 👇 YENİ: HESAP SİLME (DANGER ZONE)
+export const deleteAccount = async (req: any, res: Response): Promise<void> => {
+  try {
+    const userId = req.user?.id; // Kimlik doğrulama middleware'inden (protect) gelecek
+
+    if (!userId) {
+      res.status(401).json({ message: 'Yetkisiz erişim. Token bulunamadı.' });
+      return;
+    }
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      res.status(404).json({ message: 'Kullanıcı bulunamadı.' });
+      return;
+    }
+
+    // İPUCU: Eğer ileride kullanıcının oluşturduğu teklifleri (proposals) de silmek istersen 
+    // buraya "await Proposal.deleteMany({ user: userId });" ekleyebilirsin.
+
+    await User.findByIdAndDelete(userId);
+
+    res.status(200).json({ message: 'Hesabınız ve tüm verileriniz başarıyla silindi.' });
+  } catch (error) {
+    console.error('Hesap silme hatası:', error);
+    res.status(500).json({ message: 'Hesap silinirken bir hata oluştu.' });
+  }
+};

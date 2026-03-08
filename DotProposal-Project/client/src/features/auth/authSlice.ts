@@ -1,7 +1,7 @@
 // src/features/auth/authSlice.ts
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
 import authService from '../../services/authService';
-import { AxiosError } from 'axios';
+import axios, { AxiosError } from 'axios';
 import type { RootState } from '../../app/store';
 
 // 1. Kullanıcı Veri Tipi
@@ -172,6 +172,38 @@ export const resendVerificationEmail = createAsyncThunk<
     }
   }
 );
+// Dosyanın üst kısımlarındaki importlara axios'u eklemeyi unutma (eğer yoksa):
+// import axios from 'axios';
+
+// --- ASYNC THUNK: HESAP SİLME ---
+export const deleteUserAccount = createAsyncThunk<
+  SuccessResponse,
+  void,
+  { rejectValue: string; state: RootState }
+>(
+  'auth/deleteAccount',
+  async (_, thunkAPI) => {
+    try {
+      const token = thunkAPI.getState().auth.user?.token;
+      if (!token) return thunkAPI.rejectWithValue('Token bulunamadı');
+
+      // authService yerine direkt axios ile vuruyoruz
+      const response = await axios.delete('https://dotproposal.onrender.com/api/auth/delete-account', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      // LocalStorage'ı temizliyoruz
+      localStorage.removeItem('user');
+      localStorage.removeItem('token');
+      
+      return response.data;
+    } catch (error) {
+      const err = error as AxiosError<BackendError>;
+      const message = (err.response && err.response.data && err.response.data.message) || 'Hesap silinemedi.';
+      return thunkAPI.rejectWithValue(message);
+    }
+  }
+);
 
 
 export const authSlice = createSlice({
@@ -263,8 +295,31 @@ export const authSlice = createSlice({
         if (state.user) {
           state.user.isVerified = true;
         }
+      })
+      
+      
+      // 👇 YENİ: HESAP SİLME DURUMLARI
+      .addCase(deleteUserAccount.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(deleteUserAccount.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.isSuccess = true;
+        state.isAuthenticated = false;
+        state.user = null; // Kullanıcıyı state'den uçur
+        state.message = action.payload.message;
+      })
+      .addCase(deleteUserAccount.rejected, (state, action) => {
+        state.isLoading = false;
+        state.isError = true;
+        state.message = action.payload || 'Hesap silinirken hata oluştu.';
       });
+
+      
+
+      
   },
+  
 });
 
 export const { reset, logout, loginStart, loginSuccess, loginFailure, updateProfile } = authSlice.actions;
