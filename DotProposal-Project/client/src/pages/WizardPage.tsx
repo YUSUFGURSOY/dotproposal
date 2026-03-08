@@ -4,7 +4,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { type RootState } from '../app/store';
-// 👇 EKLENEN IMPORT: updateProfile (Senkron güncelleme)
 import { resendVerificationEmail, updateUserProfile, loginSuccess, updateProfile } from '../features/auth/authSlice'; 
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios'; 
@@ -390,12 +389,10 @@ const WizardPage: React.FC = () => {
             headers: { 'Authorization': `Bearer ${token}` }
           });
 
-          // 👇 GÜNCELLENEN: Döngüyü kıran kesin çözüm (Kalıcı hafıza)
           if (response.data.isVerified) {
             setIsLocallyVerified(true);
             enqueueSnackbar('Harika! E-posta adresiniz onaylandı. Artık teklif oluşturabilirsiniz!', { variant: 'success' });
             
-            // Kullanıcının isVerified değerini true yapıp kalıcı olarak localStorage'a ve Redux'a basıyoruz
             const updatedUser = { ...user, isVerified: true };
             localStorage.setItem('user', JSON.stringify(updatedUser));
             dispatch(loginSuccess(updatedUser)); 
@@ -412,10 +409,15 @@ const WizardPage: React.FC = () => {
   }, [user, isLocallyVerified, enqueueSnackbar, dispatch]);
 
   
- // KULLANICI DOĞRULANMIŞSA VE ÖĞRETİCİYİ GEÇMEMİŞSE MODALI AÇ
+ // 👇 İŞTE SİHİRLİ DOKUNUŞ 2: Hem Backend'i hem de Tarayıcının Kalıcı Hafızasını kontrol et
   useEffect(() => {
     const isUserVerified = user?.isVerified || isLocallyVerified;
-    if (user && isUserVerified && !user.hasCompletedOnboarding) {
+    
+    // Tarayıcı hafızasına mühür vurulmuş mu? (Örn: tutorial_ysf@mail.com)
+    const localMuteKey = user?.email ? `tutorial_${user.email}` : null;
+    const isMutedLocally = localMuteKey ? localStorage.getItem(localMuteKey) === 'true' : false;
+
+    if (user && isUserVerified && !user.hasCompletedOnboarding && !isMutedLocally) {
       setTimeout(() => {
         setShowTutorial(true);
       }, 0);
@@ -447,22 +449,27 @@ const WizardPage: React.FC = () => {
     }
   };
 
-  // 👇 İŞTE SİHİRLİ DOKUNUŞ 2: Checkbox KESİN ÇÖZÜM
+  // 👇 İŞTE SİHİRLİ DOKUNUŞ 3: Onaylandığı an mührü KESİNLİKLE tarayıcıya kazı!
   const finishTutorial = () => {
     setShowTutorial(false);
     
     if (dontShowAgain) {
-      // 1. Backend'e kalıcı kayıt gönder
-      const formData = new FormData();
-      formData.append('hasCompletedOnboarding', 'true');
-      dispatch(updateUserProfile(formData));
+      // 1. Tarayıcıya "Bir daha asla sorma" mührünü bas
+      if (user?.email) {
+        localStorage.setItem(`tutorial_${user.email}`, 'true');
+      }
 
-      // 2. Beklemeden anında Frontend'i (LocalStorage + Redux) mühürle!
+      // 2. Redux state'ini manuel ve anında güncelle (Flicker engellemek için)
       if (user) {
         const updatedUser = { ...user, hasCompletedOnboarding: true };
         localStorage.setItem('user', JSON.stringify(updatedUser));
-        dispatch(updateProfile({ hasCompletedOnboarding: true })); 
+        dispatch(updateProfile({ hasCompletedOnboarding: true }));
       }
+
+      // 3. Backend'e bilgiyi gönder (Arkada sessizce halletsin)
+      const formData = new FormData();
+      formData.append('hasCompletedOnboarding', 'true');
+      dispatch(updateUserProfile(formData));
     }
   };
 

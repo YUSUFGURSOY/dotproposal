@@ -214,6 +214,10 @@ export const authSlice = createSlice({
       authService.logout();
       state.user = null;
       state.isAuthenticated = false;
+      // 👇 İŞTE SİHİRLİ DOKUNUŞ 1: Çıkış yaparken tüm "Başarılı" hayaletlerini temizliyoruz!
+      state.isSuccess = false; 
+      state.isError = false;
+      state.message = '';
     },
     loginStart: (state) => { state.isLoading = true; },
     loginSuccess: (state, action: PayloadAction<User>) => {
@@ -277,7 +281,6 @@ export const authSlice = createSlice({
         state.isSuccess = true;
         state.user = action.payload;
         state.message = 'Profil güncellendi!';
-        // 👇 İŞTE SİHİRLİ DOKUNUŞ 1: Backend'den gelen güncel profili KESİNLİKLE tarayıcıya kazı!
         localStorage.setItem('user', JSON.stringify(action.payload));
       })
       .addCase(updateUserProfile.rejected, (state, action) => {
