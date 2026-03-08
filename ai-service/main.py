@@ -29,20 +29,19 @@ def clean_text(text):
 # 4. Asıl Tahmin Uç Noktası (Endpoint)
 @app.post("/api/predict")
 async def predict_budget(req: ProjectRequest):
-    # Gelen metni temizle
-    cleaned_text = clean_text(req.description)
-    
-    # Metni yapay zekanın anladığı sayılara çevir
-    text_vector = vectorizer.transform([cleaned_text])
-    
-    # Tahmin yap
-    prediction = model.predict(text_vector)[0]
-    
-    # Sonucu Node.js'e geri gönder
-    return {
-        "success": True,
-        "estimated_budget": round(prediction, 2)
-    }
+    try:
+        cleaned_text = clean_text(req.description)
+        print(f"Gelen Metin: {cleaned_text[:50]}...") # 👈 LOG EKLEDİK
+        
+        text_vector = vectorizer.transform([cleaned_text])
+        prediction = model.predict(text_vector)[0]
+        
+        print(f"Tahmin Sonucu: {prediction}") # 👈 LOG EKLEDİK
+        
+        return {"success": True, "estimated_budget": round(float(prediction), 2)}
+    except Exception as e:
+        print(f"⚠️ Tahmin Hatası: {e}") # 👈 HATAYI YAKALA
+        return {"success": False, "estimated_budget": 0, "error": str(e)}
 
 # Sunucu çalıştığını test etmek için basit bir GET rotası
 @app.get("/")
