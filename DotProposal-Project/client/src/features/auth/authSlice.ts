@@ -12,7 +12,9 @@ export interface User {
   token: string;
   cvFileName?: string; 
   title?: string;   
-  isVerified?: boolean;   
+  isVerified?: boolean; 
+  // 👇 YENİ EKLENEN
+  hasCompletedOnboarding?: boolean; 
 }
 interface SuccessResponse {
   message: string;
@@ -135,13 +137,11 @@ export const updateUserProfile = createAsyncThunk<
   }
 );
 
-// 👇 YENİ EKLENENLER (FIX 2: Generic Tipler Eklendi)
-
 // --- ASYNC THUNK: E-POSTA DOĞRULAMA ---
 export const verifyUserEmail = createAsyncThunk<
-  SuccessResponse, // Başarılı dönüş tipi
-  string, // Parametre (token) tipi
-  { rejectValue: string } // Hata dönüş tipi
+  SuccessResponse, 
+  string, 
+  { rejectValue: string } 
 >(
   'auth/verifyEmail',
   async (token, thunkAPI) => {
@@ -172,8 +172,6 @@ export const resendVerificationEmail = createAsyncThunk<
     }
   }
 );
-// Dosyanın üst kısımlarındaki importlara axios'u eklemeyi unutma (eğer yoksa):
-// import axios from 'axios';
 
 // --- ASYNC THUNK: HESAP SİLME ---
 export const deleteUserAccount = createAsyncThunk<
@@ -187,12 +185,10 @@ export const deleteUserAccount = createAsyncThunk<
       const token = thunkAPI.getState().auth.user?.token;
       if (!token) return thunkAPI.rejectWithValue('Token bulunamadı');
 
-      // authService yerine direkt axios ile vuruyoruz
       const response = await axios.delete('https://dotproposal.onrender.com/api/auth/delete-account', {
         headers: { Authorization: `Bearer ${token}` }
       });
       
-      // LocalStorage'ı temizliyoruz
       localStorage.removeItem('user');
       localStorage.removeItem('token');
       
@@ -204,7 +200,6 @@ export const deleteUserAccount = createAsyncThunk<
     }
   }
 );
-
 
 export const authSlice = createSlice({
   name: 'auth',
@@ -290,15 +285,14 @@ export const authSlice = createSlice({
         state.message = action.payload || 'Hata oluştu';
       })
 
-      // 👇 YENİ: DOĞRULAMA BAŞARILIYSA STATE'İ GÜNCELLE
+      // DOĞRULAMA
       .addCase(verifyUserEmail.fulfilled, (state) => {
         if (state.user) {
           state.user.isVerified = true;
         }
       })
       
-      
-      // 👇 YENİ: HESAP SİLME DURUMLARI
+      // HESAP SİLME
       .addCase(deleteUserAccount.pending, (state) => {
         state.isLoading = true;
       })
@@ -306,7 +300,7 @@ export const authSlice = createSlice({
         state.isLoading = false;
         state.isSuccess = true;
         state.isAuthenticated = false;
-        state.user = null; // Kullanıcıyı state'den uçur
+        state.user = null; 
         state.message = action.payload.message;
       })
       .addCase(deleteUserAccount.rejected, (state, action) => {
@@ -314,12 +308,7 @@ export const authSlice = createSlice({
         state.isError = true;
         state.message = action.payload || 'Hesap silinirken hata oluştu.';
       });
-
-      
-
-      
   },
-  
 });
 
 export const { reset, logout, loginStart, loginSuccess, loginFailure, updateProfile } = authSlice.actions;

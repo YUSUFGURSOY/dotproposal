@@ -9,18 +9,20 @@ export const updateProfile = async (req: AuthRequest, res: Response) => {
     const user = await User.findById(req.user._id);
 
     if (user) {
-      // Gelen verileri al (Eğer boşsa eskisini koru)
       user.name = req.body.name || user.name;
       user.email = req.body.email || user.email;
       user.title = req.body.title || user.title; 
       user.githubLink = req.body.githubLink || user.githubLink; 
 
-      // 👇 DİKKAT: ARTIK filename DEĞİL, path (Cloudinary URL'si) KULLANIYORUZ
+      // 👇 YENİ: ONBOARDING DURUMUNU KAYDET (Eğer frontend'den gönderildiyse)
+      if (req.body.hasCompletedOnboarding !== undefined) {
+        user.hasCompletedOnboarding = req.body.hasCompletedOnboarding === 'true' || req.body.hasCompletedOnboarding === true;
+      }
+
       if (req.file) {
         user.cvFileName = req.file.path;
       }
 
-      // Şifre değişikliği varsa
       if (req.body.password) {
         user.password = req.body.password; 
       }
@@ -34,6 +36,7 @@ export const updateProfile = async (req: AuthRequest, res: Response) => {
         title: updatedUser.title,
         cvFileName: updatedUser.cvFileName,
         githubLink: updatedUser.githubLink, 
+        hasCompletedOnboarding: updatedUser.hasCompletedOnboarding, // 👇 YENİ
         token: req.headers.authorization?.split(' ')[1] 
       });
     } else {

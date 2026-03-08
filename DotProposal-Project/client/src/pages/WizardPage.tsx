@@ -4,7 +4,8 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { type RootState } from '../app/store';
-import { resendVerificationEmail } from '../features/auth/authSlice'; 
+// 👇 EKLENEN THUNK
+import { resendVerificationEmail, updateUserProfile } from '../features/auth/authSlice'; 
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios'; 
 import ReactMarkdown from 'react-markdown'; 
@@ -22,7 +23,7 @@ import {
 import { 
     Paper, Button, Typography, TextField, Box, 
     CircularProgress, Divider, FormGroup, FormControlLabel, Checkbox, InputAdornment,
-    Accordion, AccordionSummary, AccordionDetails
+    Accordion, AccordionSummary, AccordionDetails, Dialog, DialogContent // 👇 Dialog importu eklendi
 } from '@mui/material';
 import { useReactToPrint } from 'react-to-print';
 import PrintIcon from '@mui/icons-material/Print';
@@ -359,9 +360,12 @@ const WizardPage: React.FC = () => {
   const [selectedFeatures, setSelectedFeatures] = useState<string[]>([]); 
   const [selectedSections, setSelectedSections] = useState<string[]>([]); 
 
-  // 👇 YENİ: Cooldown ve Yerel Doğrulama State'leri
   const [cooldown, setCooldown] = useState<number>(0);
   const [isLocallyVerified, setIsLocallyVerified] = useState<boolean>(false);
+
+  // 👇 YENİ: AKILLI ÖĞRETİCİ (TUTORIAL) STATE'LERİ
+  const [tutorialStep, setTutorialStep] = useState(0);
+  const [showTutorial, setShowTutorial] = useState(false);
 
   // Cooldown Sayacı
   useEffect(() => {
@@ -372,24 +376,21 @@ const WizardPage: React.FC = () => {
     return () => clearInterval(timer);
   }, [cooldown]);
 
-  // 👇 YENİ: MAGIC POLLING (Cihazlar Arası Radar)
+  // MAGIC POLLING (Cihazlar Arası Radar)
   useEffect(() => {
     let pollingInterval: any;
 
-    // Eğer kullanıcı giriş yapmış, veritabanından (Redux'tan) henüz onaylanmamış ve bu sekmede de onaylanmamışsa
     if (user && !user.isVerified && !isLocallyVerified) {
       pollingInterval = setInterval(async () => {
         try {
           const token = localStorage.getItem('token');
           if (!token) return;
 
-          // Arka planda sessizce durumu kontrol et
           const response = await axios.get('https://dotproposal.onrender.com/api/auth/check-status', {
             headers: { 'Authorization': `Bearer ${token}` }
           });
 
           if (response.data.isVerified) {
-            // ✅ DOĞRULANDI! Duvarı yık ve içeri al!
             setIsLocallyVerified(true);
             enqueueSnackbar('Harika! E-posta adresiniz onaylandı. Artık teklif oluşturabilirsiniz!', { variant: 'success' });
             clearInterval(pollingInterval);
@@ -397,12 +398,23 @@ const WizardPage: React.FC = () => {
         } catch (error) {
           console.error("Durum radarı hata verdi:", error);
         }
-      }, 3000); // Her 3 saniyede bir sor
+      }, 3000); 
     }
 
     return () => clearInterval(pollingInterval);
   }, [user, isLocallyVerified, enqueueSnackbar]);
 
+  
+ // 👇 GÜNCELLENEN: KULLANICI DOĞRULANMIŞSA VE ÖĞRETİCİYİ GEÇMEMİŞSE MODALI AÇ
+  useEffect(() => {
+    const isUserVerified = user?.isVerified || isLocallyVerified;
+    if (user && isUserVerified && !user.hasCompletedOnboarding) {
+      // 👇 ESLint "Cascading renders" hatasını önlemek için işlemi React'ın kuyruğuna (asenkron) atıyoruz
+      setTimeout(() => {
+        setShowTutorial(true);
+      }, 0);
+    }
+  }, [user, isLocallyVerified]);
 
   const availableFeatures = [
     "SEO Optimizasyonu", "Mobil Uyumlu Tasarım", "Yönetim Paneli", "Ödeme Sistemi", 
@@ -416,6 +428,27 @@ const WizardPage: React.FC = () => {
     { id: 'rakip', label: '4. Rakip Analizi' },
     { id: 'takvim', label: '5. Proje Takvimi' }
   ];
+
+  // 👇 YENİ: ÖĞRETİCİ SLAYTLARI
+  const tutorialSlides = [
+    { title: "🚀 DotProposal'a Hoş Geldin!", desc: "Saniyeler içinde profesyonel teklifler oluşturmaya hazır mısın? Yapay zeka asistanın senin için tüm iş kalemlerini ve bütçeyi planlayacak." },
+    { title: "✍️ Proje Detaylarını Gir", desc: "Müşteri adını ve projenin kısa bir özetini yaz. İstersen gelişmiş seçeneklerden saatlik ücretini ve özelliklerini seçebilirsin." },
+    { title: "📄 Teklifini Gönder", desc: "Analiz tamamlandığında teklifini şık bir PDF olarak indirebilir ve anında müşterine gönderebilirsin. Hadi başlayalım!" }
+  ];
+
+  const handleTutorialNext = () => {
+    if (tutorialStep < tutorialSlides.length - 1) {
+      setTutorialStep(prev => prev + 1);
+    }
+  };
+
+  const finishTutorial = () => {
+    setShowTutorial(false);
+    // Veritabanına "bir daha gösterme" bilgisini kaydet
+    const formData = new FormData();
+    formData.append('hasCompletedOnboarding', 'true');
+    dispatch(updateUserProfile(formData));
+  };
 
   const handleFeatureChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const feature = e.target.name;
@@ -566,7 +599,6 @@ const WizardPage: React.FC = () => {
     navigate('/dashboard');
   };
 
-  // 👇 GÜNCELLEME: Hem Redux state'ine (user.isVerified) hem de radardan gelen onaya (isLocallyVerified) bakıyoruz
   if (user && !user.isVerified && !isLocallyVerified) {
     return (
       <ThemeProvider theme={theme}>
@@ -603,7 +635,6 @@ const WizardPage: React.FC = () => {
               </OutlineButton>
             </Box>
 
-            {/* 👇 YENİ: RADAR GÖRSELLERİ (Kullanıcıya sistemin çalıştığını hissettiriyoruz) */}
             <Box display="flex" alignItems="center" justifyContent="center" gap={1.5} mt={5} sx={{ opacity: 0.8 }}>
               <CircularProgress size={16} sx={{ color: '#A3ADF0' }} />
               <Typography variant="caption" sx={{ fontFamily: '"Sora", sans-serif', color: '#A3ADF0', letterSpacing: '0.05em' }}>
@@ -617,10 +648,52 @@ const WizardPage: React.FC = () => {
     );
   }
 
-  // 👇 KULLANICI DOĞRULANMIŞSA NORMAL WIZARD'I GÖSTER
   return (
     <ThemeProvider theme={theme}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap');`}</style>
+
+      {/* 👇 YENİ: AKILLI ÖĞRETİCİ MODALI */}
+      <Dialog 
+        open={showTutorial} 
+        maxWidth="sm" 
+        fullWidth
+        PaperProps={{
+          sx: { borderRadius: 4, background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)', color: 'white', overflow: 'hidden' }
+        }}
+      >
+        <DialogContent sx={{ textAlign: 'center', py: 6, px: 4 }}>
+          <Typography variant="h5" fontWeight="bold" mb={2} sx={{ fontFamily: '"Sora", sans-serif' }}>
+            {tutorialSlides[tutorialStep].title}
+          </Typography>
+          <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.7)', mb: 5, fontFamily: '"Sora", sans-serif', lineHeight: 1.6 }}>
+            {tutorialSlides[tutorialStep].desc}
+          </Typography>
+
+          <Box display="flex" justifyContent="center" gap={1} mb={5}>
+            {tutorialSlides.map((_, idx) => (
+              <Box 
+                key={idx} 
+                sx={{ 
+                  width: idx === tutorialStep ? 24 : 8, 
+                  height: 8, 
+                  borderRadius: 4, 
+                  background: idx === tutorialStep ? '#6C78D6' : 'rgba(255,255,255,0.2)',
+                  transition: 'all 0.3s ease'
+                }} 
+              />
+            ))}
+          </Box>
+
+          <Box display="flex" gap={2} justifyContent="center">
+            {tutorialStep < tutorialSlides.length - 1 ? (
+              <PrimaryButton onClick={handleTutorialNext} sx={{ width: '200px' }}>İleri →</PrimaryButton>
+            ) : (
+              <PrimaryButton onClick={finishTutorial} sx={{ width: '200px' }}>Tekrar Gösterme / Başla</PrimaryButton>
+            )}
+          </Box>
+        </DialogContent>
+      </Dialog>
+      {/* 👆 YENİ BİTİŞ */}
 
       <PageWrapper>
         <GlassCard elevation={0}>

@@ -3,6 +3,7 @@ import mongoose, { Document, Schema, Model } from 'mongoose';
 import bcrypt from 'bcryptjs';
 
 // 1. ARAYÜZ (INTERFACE)
+// 1. ARAYÜZ (INTERFACE)
 export interface IUser extends Document {
   name: string;
   email: string;
@@ -13,11 +14,14 @@ export interface IUser extends Document {
   resetPasswordCode?: string;
   resetPasswordExpire?: Date;
   resetPasswordCooldown?: Date;
-  // 👇 YENİ EKLENENLER (E-posta Doğrulama İçin)
   isVerified: boolean;
   verificationToken?: string;
   verificationCooldown?: Date;
-  // 👆 YENİ EKLENENLER BİTİŞ
+  // 👇 TYPESCRIPT'İ SUSTURAN KISIM (Bu 3 satırın olduğundan kesinlikle emin ol)
+  hourlyRate?: number;
+  currency?: string;
+  hasCompletedOnboarding?: boolean;
+  
   comparePassword(candidatePassword: string): Promise<boolean>;
   isModified(path: string): boolean;
 }
