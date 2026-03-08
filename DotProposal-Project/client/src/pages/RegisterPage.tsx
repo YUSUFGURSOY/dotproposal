@@ -34,6 +34,12 @@ const RegisterPage: React.FC = () => {
     passwordConfirm: '',
   });
 
+  // 👇 YENİ: Form hata mesajlarını tutacağımız state
+  const [formErrors, setFormErrors] = useState({
+    email: '',
+    password: '',
+  });
+
   const { name, email, password, passwordConfirm } = formData;
 
   const { isLoading, isError, isSuccess, message } = useSelector(
@@ -72,16 +78,49 @@ const RegisterPage: React.FC = () => {
       ...prevState,
       [e.target.name]: e.target.value,
     }));
+
+    // 👇 YENİ: Kullanıcı yazmaya başladığında o kutudaki hatayı temizle
+    if (formErrors[e.target.name as keyof typeof formErrors]) {
+      setFormErrors((prev) => ({
+        ...prev,
+        [e.target.name]: '',
+      }));
+    }
   };
 
   const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
+
+    let hasError = false;
+    const newErrors = { email: '', password: '' };
+
+    // 👇 YENİ: E-posta format kontrolü
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      newErrors.email = 'Geçerli bir e-posta adresi girin (Örn: isim@sirket.com)';
+      hasError = true;
+    }
+
+    // 👇 YENİ: Şifre zorluk kontrolü (En az 8 karakter, 1 Büyük harf, 1 Rakam)
+    const passwordRegex = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
+    if (!passwordRegex.test(password)) {
+      newErrors.password = 'Şifre en az 8 karakter, 1 büyük harf ve 1 rakam içermelidir.';
+      hasError = true;
+    }
+
+    // Eğer validasyonlardan biri patlarsa, hiç backend'e gitmeden durduruyoruz.
+    if (hasError) {
+      setFormErrors(newErrors);
+      return;
+    }
+
     if (password !== passwordConfirm) {
       enqueueSnackbar(t('auth.passwordMismatch', 'Şifreler eşleşmiyor!'), {
         variant: 'warning',
       });
       return;
     }
+    
     const userData = { name, email, password };
     dispatch(registerUser(userData));
   };
@@ -227,6 +266,8 @@ const RegisterPage: React.FC = () => {
                   onChange={onChange}
                   autoFocus
                 />
+                
+                {/* 👇 GÜNCELLENDİ: E-posta alanı hata mesajı gösterecek şekilde ayarlandı */}
                 <TextField
                   margin="normal"
                   required
@@ -236,7 +277,11 @@ const RegisterPage: React.FC = () => {
                   type="email"
                   value={email}
                   onChange={onChange}
+                  error={!!formErrors.email}
+                  helperText={formErrors.email}
                 />
+                
+                {/* 👇 GÜNCELLENDİ: Şifre alanı hata mesajı gösterecek şekilde ayarlandı */}
                 <TextField
                   margin="normal"
                   required
@@ -246,7 +291,10 @@ const RegisterPage: React.FC = () => {
                   type="password"
                   value={password}
                   onChange={onChange}
+                  error={!!formErrors.password}
+                  helperText={formErrors.password || "En az 8 karakter, 1 büyük harf ve 1 rakam"}
                 />
+                
                 <TextField
                   margin="normal"
                   required

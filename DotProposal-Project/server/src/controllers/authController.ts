@@ -14,6 +14,7 @@ const generateToken = (id: string | any) => {
 };
 
 // --- REGISTER (KAYIT OL) ---
+// --- REGISTER (KAYIT OL) ---
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
     const { name, email, password } = req.body;
@@ -23,13 +24,30 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    // 👇 YENİ: E-POSTA FORMAT KONTROLÜ (Regex)
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      res.status(400).json({ message: 'Lütfen geçerli bir e-posta adresi girin. (Örn: isim@sirket.com)' });
+      return;
+    }
+
+    // 👇 YENİ: ŞİFRE KARMAŞIKLIK KONTROLÜ (Regex)
+    // Kural: En az 8 karakter, en az 1 büyük harf, en az 1 rakam
+    const passwordRegex = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
+    if (!passwordRegex.test(password)) {
+      res.status(400).json({ 
+        message: 'Şifreniz en az 8 karakter olmalı, en az 1 büyük harf ve 1 rakam içermelidir.' 
+      });
+      return;
+    }
+
     const userExists = await User.findOne({ email });
     if (userExists) {
       res.status(400).json({ message: 'Bu e-posta adresi zaten kayıtlı.' });
       return;
     }
 
-    // 👇 YENİ: Güvenli Doğrulama Token'ı Üret
+    // Güvenli Doğrulama Token'ı Üret
     const verificationToken = crypto.randomBytes(32).toString('hex');
     const verificationCooldown = new Date(Date.now() + 60 * 1000); // 60 saniye bekleme süresi
 
@@ -37,14 +55,14 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       name, 
       email, 
       password,
-      verificationToken, // 👇 YENİ: Token'ı veritabanına kaydet
+      verificationToken, 
       verificationCooldown
     });
 
     if (user) {
-      // 👇 YENİ: Arka planda doğrulama mailini fırlat (beklemeden devam et)
+      // Arka planda doğrulama mailini fırlat
       const verifyUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/verify-email/${verificationToken}`;
-      const message = `Merhaba ${user.name},\n\nDotProposal'a hoş geldin! Tüm özelliklere (Teklif Sihirbazı vb.) erişebilmek için lütfen aşağıdaki linke tıklayarak e-posta adresini doğrula:\n\n${verifyUrl}\n\nİyi çalışmalar!`;
+      const message = `Merhaba ${user.name},\n\nDotProposal'a hoş geldin! Tüm özelliklere erişebilmek için lütfen aşağıdaki linke tıklayarak e-posta adresini doğrula:\n\n${verifyUrl}\n\nİyi çalışmalar!`;
       
       sendEmail({
         email: user.email,
@@ -56,7 +74,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
         _id: user._id, 
         name: user.name,
         email: user.email,
-        isVerified: user.isVerified, // 👇 YENİ: Frontend'in bilmesi için
+        isVerified: user.isVerified,
         token: generateToken(user._id.toString()), 
       });
     } else {
