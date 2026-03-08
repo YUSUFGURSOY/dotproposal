@@ -17,7 +17,8 @@ import {
   setLoading, 
   saveProposalToHistory,
   setProposalId,
-  setProposalStatus
+  setProposalStatus,
+  setAIAnalysis
 } from '../features/proposal/proposalSlice';
 import { 
     Paper, Button, Typography, TextField, Box, 
@@ -31,6 +32,8 @@ import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';   
 import SettingsSuggestIcon from '@mui/icons-material/SettingsSuggest'; 
 import MarkEmailUnreadIcon from '@mui/icons-material/MarkEmailUnread'; 
+import QueryStatsIcon from '@mui/icons-material/QueryStats'; // 👇 YENİ İKON
+import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty'; // 👇 YENİ İKON
 import { useTranslation } from 'react-i18next';
 import { createTheme, ThemeProvider, styled, keyframes } from '@mui/material/styles';
 
@@ -349,7 +352,8 @@ const WizardPage: React.FC = () => {
   const navigate = useNavigate();
   const { enqueueSnackbar } = useSnackbar(); 
   
-  const { step, clientName, projectDescription, loading, proposalId, status } = useSelector((state: RootState) => state.proposal);
+  // 👇 GÜNCELLENDİ: aiAnalysis verisini Redux'tan çekiyoruz
+  const { step, clientName, projectDescription, loading, proposalId, status, aiAnalysis } = useSelector((state: RootState) => state.proposal);
   const { user } = useSelector((state: RootState) => state.auth); 
 
   const { t } = useTranslation();
@@ -389,10 +393,12 @@ const WizardPage: React.FC = () => {
             headers: { 'Authorization': `Bearer ${token}` }
           });
 
+          // 👇 GÜNCELLENEN: Döngüyü kıran kesin çözüm (Kalıcı hafıza)
           if (response.data.isVerified) {
             setIsLocallyVerified(true);
             enqueueSnackbar('Harika! E-posta adresiniz onaylandı. Artık teklif oluşturabilirsiniz!', { variant: 'success' });
             
+            // Kullanıcının isVerified değerini true yapıp kalıcı olarak localStorage'a ve Redux'a basıyoruz
             const updatedUser = { ...user, isVerified: true };
             localStorage.setItem('user', JSON.stringify(updatedUser));
             dispatch(loginSuccess(updatedUser)); 
@@ -409,7 +415,7 @@ const WizardPage: React.FC = () => {
   }, [user, isLocallyVerified, enqueueSnackbar, dispatch]);
 
   
- // 👇 İŞTE SİHİRLİ DOKUNUŞ 2: Hem Backend'i hem de Tarayıcının Kalıcı Hafızasını kontrol et
+ // KULLANICI DOĞRULANMIŞSA VE ÖĞRETİCİYİ GEÇMEMİŞSE MODALI AÇ
   useEffect(() => {
     const isUserVerified = user?.isVerified || isLocallyVerified;
     
@@ -546,7 +552,11 @@ const WizardPage: React.FC = () => {
 
         if (response.data && response.data.proposalId) {
             dispatch(setProposalId(response.data.proposalId)); 
+            if (response.data.aiAnalysis) {
+        dispatch(setAIAnalysis(response.data.aiAnalysis));
+    }
         }
+        
 
     } catch (error: any) {
         console.error("AI Hatası:", error);
@@ -921,6 +931,59 @@ const WizardPage: React.FC = () => {
             {step === 2 && (
                 
               <Box sx={{ animation: `${fadeUp} 0.4s ease both` }}>
+                
+                {/* 👇 YENİ: DOTPROPOSAL AI PİYASA ANALİZİ KARTI (GERÇEK VERİLERLE) */}
+                {aiAnalysis && (aiAnalysis.budget > 0 || aiAnalysis.hours > 0) && (
+                  <InsightCard sx={{ mb: 3, background: 'rgba(108, 120, 214, 0.08)', border: '1px solid rgba(163, 173, 240, 0.3)' }}>
+                    <Box display="flex" alignItems="center" gap={1.5} mb={2.5}>
+                      <QueryStatsIcon sx={{ color: '#A3ADF0' }} />
+                      <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#A3ADF0', letterSpacing: '0.03em', fontFamily: '"Sora", sans-serif' }}>
+                        DotProposal AI Piyasa Analizi
+                      </Typography>
+                    </Box>
+                    
+                    <Box display="flex" flexWrap="wrap" gap={3}>
+                      {/* Bütçe Bölümü */}
+                      <Box display="flex" alignItems="center" gap={2} sx={{ flex: '1 1 200px' }}>
+                        <Box sx={{ p: 1, borderRadius: 2, background: 'rgba(108, 120, 214, 0.15)' }}>
+                          <AttachMoneyIcon sx={{ color: '#6C78D6' }} />
+                        </Box>
+                        <Box>
+                          <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)', display: 'block', fontSize: 10, textTransform: 'uppercase' }}>
+                            Piyasa Değeri Tahmini
+                          </Typography>
+                          <Typography variant="h6" sx={{ fontWeight: 800, color: '#FFFFFF' }}>
+                            ${aiAnalysis.budget.toLocaleString()}
+                          </Typography>
+                        </Box>
+                      </Box>
+
+                      {/* Saat/Efor Bölümü (Sihirli Saat Algoritması) */}
+                      {aiAnalysis.hours > 0 && (
+                        <Box display="flex" alignItems="center" gap={2} sx={{ flex: '1 1 200px' }}>
+                          <Box sx={{ p: 1, borderRadius: 2, background: 'rgba(123, 82, 158, 0.15)' }}>
+                            <HourglassEmptyIcon sx={{ color: '#B282D6' }} />
+                          </Box>
+                          <Box>
+                            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)', display: 'block', fontSize: 10, textTransform: 'uppercase' }}>
+                              Efor Tahmini (Senin Hızınla)
+                            </Typography>
+                            <Typography variant="h6" sx={{ fontWeight: 800, color: '#FFFFFF' }}>
+                              ~{aiAnalysis.hours} Saat
+                            </Typography>
+                          </Box>
+                        </Box>
+                      )}
+                    </Box>
+
+                    <Divider sx={{ my: 2, opacity: 0.1 }} />
+                    
+                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.6)', fontFamily: '"Sora", sans-serif', fontStyle: 'italic' }}>
+                      💡 İpucu: Bu proje için ${Math.floor(aiAnalysis.budget * 0.9)} - ${Math.ceil(aiAnalysis.budget * 1.1)} aralığında teklif vermeniz rekabetçi kalmanızı sağlar.
+                    </Typography>
+                  </InsightCard>
+                )}
+
                 {/* 🤖 AI STRATEJİK TAVSİYELER PANELİ */}
                 {insights && insights.length > 0 && (
                   <InsightCard>

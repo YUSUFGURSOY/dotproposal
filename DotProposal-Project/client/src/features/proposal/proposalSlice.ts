@@ -1,3 +1,4 @@
+// src/features/proposal/proposalSlice.ts
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 
 // Geçmişteki bir teklifin veri yapısı
@@ -8,6 +9,12 @@ export interface ProposalRecord {
   projectDescription: string;
   totalPrice: number;
   items: string[];
+}
+
+// 👇 YENİ: Eğittiğimiz AI Modelinden gelen analiz verisi tipi
+export interface AIAnalysisData {
+  budget: number;
+  hours: number;
 }
 
 interface ProposalState {
@@ -21,6 +28,8 @@ interface ProposalState {
   // RabbitMQ asenkron takibi için
   proposalId: string | null;
   status: 'idle' | 'pending' | 'completed' | 'error';
+  // 👇 YENİ EKLENEN ALAN
+  aiAnalysis: AIAnalysisData | null;
 }
 
 const initialState: ProposalState = {
@@ -31,9 +40,10 @@ const initialState: ProposalState = {
   totalPrice: 0,
   loading: false,
   history: [], 
- 
   proposalId: null,
   status: 'idle',
+  // 👇 YENİ: Başlangıçta boş
+  aiAnalysis: null,
 };
 
 export const proposalSlice = createSlice({
@@ -55,12 +65,22 @@ export const proposalSlice = createSlice({
       state.totalPrice = action.payload.price;
     },
 
-    // 👇 YENİ EKLENENLER: Backend'den ID geldiğinde ve durum değiştiğinde çağrılacak
+    // Backend'den ID geldiğinde ve durum değiştiğinde çağrılacak
     setProposalId: (state, action: PayloadAction<string | null>) => {
       state.proposalId = action.payload;
     },
     setProposalStatus: (state, action: PayloadAction<'idle' | 'pending' | 'completed' | 'error'>) => {
       state.status = action.payload;
+      
+      // 👇 SİHİRLİ DOKUNUŞ: Eğer yeni bir analiz başlıyorsa (pending), eski analiz verilerini temizleyelim
+      if (action.payload === 'pending') {
+        state.aiAnalysis = null;
+      }
+    },
+
+    // 👇 YENİ: Backend'den gelen AI analiz sonuçlarını (Bütçe ve Saat) kaydetmek için
+    setAIAnalysis: (state, action: PayloadAction<AIAnalysisData | null>) => {
+      state.aiAnalysis = action.payload;
     },
 
     // Mevcut teklifi geçmişe kaydet ve sihirbazı sıfırlama
@@ -83,9 +103,10 @@ export const proposalSlice = createSlice({
       state.generatedItems = [];
       state.totalPrice = 0;
       
-      //  Geçmişe kaydettikten sonra asenkron durumu da sıfırla
+      // Geçmişe kaydettikten sonra asenkron durumu ve AI analizini de sıfırla
       state.proposalId = null;
       state.status = 'idle';
+      state.aiAnalysis = null; // 👇 ANALİZİ DE TEMİZLE
     },
 
     // Geçmişten teklif silme
@@ -104,7 +125,8 @@ export const {
   saveProposalToHistory, 
   deleteProposal,
   setProposalId,     
-  setProposalStatus  
+  setProposalStatus,
+  setAIAnalysis // 👇 DIŞARIYA AÇTIK
 } = proposalSlice.actions;
 
 export default proposalSlice.reducer;
