@@ -11,6 +11,7 @@ import proposalRoutes from './routes/proposalRoutes';
 // import { connectQueue } from './config/rabbitmq'; 
 // import { startProposalWorker } from './workers/proposalWorker';
 
+
 dotenv.config();
 
 if (!process.env.MONGO_URI) {
@@ -31,25 +32,23 @@ connectDB();
 const app: Express = express();
 const PORT = process.env.PORT || 5000;
 
-// --- YENİ: Gelişmiş CORS Politikası ---
-const allowedOrigins = [
-  'https://www.dotproposal.com', 
-  'https://dotproposal.com',     
-  'http://localhost:3000',       
-  'http://localhost:5173'        
-];
+// --- 1. ÖNCE LOG MIDDLEWARE (İstek gelir gelmez önce görelim, CORS'tan bile önce!) ---
+app.use((req, res, next) => {
+  console.log(`📡 İSTEK GELDİ: ${req.method} ${req.url} | Origin: ${req.headers.origin || 'Bilinmiyor'}`);
+  next();
+});
 
+// --- 2. KURŞUNGEÇİRMEZ CORS AYARI ---
 app.use(cors({
-  origin: function (origin, callback) {
-    // origin yoksa (örn: backend'den veya postman'den geliyorsa) veya listedeyse izin ver
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(new Error('CORS policy engelledi.'));
-    }
-  },
+  origin: [
+    'https://www.dotproposal.com', 
+    'https://dotproposal.com',     
+    'http://localhost:3000',       
+    'http://localhost:5173'
+  ],
   credentials: true, 
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
 }));
 
 app.use(express.json());
@@ -57,12 +56,6 @@ app.use(express.json());
 // --- ÖNEMLİ: Yüklenen dosyalara (CV) tarayıcıdan erişim izni ---
 // 'uploads' klasörünü statik olarak dışarı açıyoruz
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
-
-// --- LOG MIDDLEWARE ---
-app.use((req, res, next) => {
-  console.log(`📡 İSTEK GELDİ: ${req.method} ${req.url}`);
-  next();
-});
 
 // --- ROTALAR ---
 console.log("🚦 Rotalar Tanımlanıyor...");
