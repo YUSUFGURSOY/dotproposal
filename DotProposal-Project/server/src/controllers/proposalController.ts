@@ -23,11 +23,9 @@ export const createProposal = async (req: AuthRequest, res: Response): Promise<v
     try {
       console.log(`\n[AI-RADAR] Python servisine istek atılıyor. İş Başlığı: ${jobTitle || 'Yok'}`);
       
-      // YENİ: Bizim yerel FastAPI sunucumuz ve modelin beklediği 'title' verisi
-      const aiResponse = await axios.post('http://127.0.0.1:8000/predict-budget', {
+      const aiResponse = await axios.post('https://dotproposal-ai.onrender.com/predict-budget', {
         title: jobTitle || 'Taslak İş Başlığı' 
       });
-
       console.log("[AI-RADAR] Python'dan dönen ham cevap:", aiResponse.data);
 
       // YENİ: FastAPI'nin döndürdüğü 'status' ve 'suggested_budget' alanlarına göre kontrol
