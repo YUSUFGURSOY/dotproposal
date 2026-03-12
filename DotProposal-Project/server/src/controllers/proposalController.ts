@@ -20,12 +20,18 @@ export const createProposal = async (req: AuthRequest, res: Response): Promise<v
     let aiEstimatedBudget = 0;
     let aiEstimatedHours = 0;
 
-    try {
-      console.log(`\n[AI-RADAR] Python servisine istek atılıyor. İş Başlığı: ${jobTitle || 'Yok'}`);
+  try {
+      // 1. Önce metinleri birleştir
+      const combinedText = `${jobTitle || ''} ${jobDescription || ''}`.trim();
       
+      // 2. Loga birleştirilmiş metni yazdır ki ne gönderdiğini gör
+      console.log(`\n[AI-RADAR] Python servisine istek atılıyor. Gönderilen Metin: ${combinedText || 'Yok'}`);
+      
+      // 3. Modeline bu zengin metni yolla
       const aiResponse = await axios.post('https://dotproposal-ai.onrender.com/predict-budget', {
-        title: jobTitle || 'Taslak İş Başlığı' 
+        title: combinedText || 'Taslak İş Başlığı'
       });
+      
       console.log("[AI-RADAR] Python'dan dönen ham cevap:", aiResponse.data);
 
       // YENİ: FastAPI'nin döndürdüğü 'status' ve 'suggested_budget' alanlarına göre kontrol
