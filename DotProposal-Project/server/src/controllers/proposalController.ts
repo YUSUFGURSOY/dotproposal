@@ -21,17 +21,19 @@ export const createProposal = async (req: AuthRequest, res: Response): Promise<v
     let aiEstimatedHours = 0;
 
     try {
-      console.log(`\n[AI-RADAR] Python servisine istek atılıyor. Metin uzunluğu: ${jobDescription?.length || 0}`);
+      console.log(`\n[AI-RADAR] Python servisine istek atılıyor. İş Başlığı: ${jobTitle || 'Yok'}`);
       
-      const aiResponse = await axios.post('https://dotproposal-ai.onrender.com/api/predict', {
-        description: jobDescription || 'Taslak Açıklama'
+      // YENİ: Bizim yerel FastAPI sunucumuz ve modelin beklediği 'title' verisi
+      const aiResponse = await axios.post('http://127.0.0.1:8000/predict-budget', {
+        title: jobTitle || 'Taslak İş Başlığı' 
       });
 
       console.log("[AI-RADAR] Python'dan dönen ham cevap:", aiResponse.data);
 
-      if (aiResponse.data.success) {
+      // YENİ: FastAPI'nin döndürdüğü 'status' ve 'suggested_budget' alanlarına göre kontrol
+      if (aiResponse.data.status === 'success') {
         // 🛡️ KALKAN: Gelen veriyi kesinlikle sayıya (Number) çevir
-        aiEstimatedBudget = Number(aiResponse.data.estimated_budget) || 0;
+        aiEstimatedBudget = Number(aiResponse.data.suggested_budget) || 0;
         console.log(`[AI-RADAR] İşlenmiş Bütçe: $${aiEstimatedBudget}`);
 
         // 👇 2. ADIM: SENİN "SİHİRLİ SAAT" ALGORİTMAN (HİBRİD ZEKA)
@@ -103,7 +105,7 @@ export const createProposal = async (req: AuthRequest, res: Response): Promise<v
   }
 };
 
-// ... (Geri kalan tüm fonksiyonlar: getMyProposals, getProposalById, getPublicProposalById, updateDealStatus, addClientFeedback, markFeedbackAsRead, updateProposal, enhanceProposalText, deleteProposal, togglePinProposal fonksiyonları KESİNLİKLE DEĞİŞTİRİLMEDİ VE AYNI KALDI) ...
+// ... Geri Kalan Fonksiyonlar Tamamen Aynı Bırakıldı ...
 
 export const getMyProposals = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
