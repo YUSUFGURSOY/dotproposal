@@ -31,9 +31,28 @@ connectDB();
 const app: Express = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(cors());
-app.use(express.json());
+// --- YENİ: Gelişmiş CORS Politikası ---
+const allowedOrigins = [
+  'https://www.dotproposal.com', 
+  'https://dotproposal.com',     
+  'http://localhost:3000',       
+  'http://localhost:5173'        
+];
 
+app.use(cors({
+  origin: function (origin, callback) {
+    // origin yoksa (örn: backend'den veya postman'den geliyorsa) veya listedeyse izin ver
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('CORS policy engelledi.'));
+    }
+  },
+  credentials: true, 
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+}));
+
+app.use(express.json());
 
 // --- ÖNEMLİ: Yüklenen dosyalara (CV) tarayıcıdan erişim izni ---
 // 'uploads' klasörünü statik olarak dışarı açıyoruz
