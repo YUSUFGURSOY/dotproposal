@@ -9,14 +9,14 @@ export interface PromptInputData {
   selectedFeatures?: string[];
   hourlyRate?: string;
   selectedSections?: string[];
-  // 👇 YENİ: Python'dan (Makine Öğrenmesi) gelen veriler
+  // Python'dan (Makine Öğrenmesi) gelen veriler
   aiEstimatedBudget?: number;
   aiEstimatedHours?: number;
 }
 
-// ─── SÜRE KALİBRASYONU VE KİŞİSELLEŞTİRME (YENİ NESİL) ──────────
+// ─── SÜRE KALİBRASYONU VE KİŞİSELLEŞTİRME ──────────
 const DURATION_CALIBRATION = `
-### SÜRE KALİBRASYON REFERANSI VE CV BAZLI KİŞİSELLEŞTİRME (2024–2025)
+### SÜRE KALİBRASYON REFERANSI VE CV BAZLI KİŞİSELLEŞTİRME
 
 Her modülü bu listeden ayrı ayrı değerlendir, sonra topla:
 - Basit landing page (statik, 3–5 sayfa): 3–6 saat
@@ -143,7 +143,7 @@ export const buildProposalPrompt = (data: PromptInputData): string => {
     .map((key: string) => allSectionsDefinition[key])
     .join("\n\n---\n\n");
 
-  // 👇 3. FİYATLANDIRMA TALİMATI (PYTHON AI ENTEGRASYONU İLE)
+ // 3. FİYATLANDIRMA TALİMATI (HİBRİD AI KONTROLÜ İLE)
   let priceInstruction = '';
   if (data.aiEstimatedBudget && data.aiEstimatedBudget > 0) {
     priceInstruction = `
@@ -151,11 +151,14 @@ export const buildProposalPrompt = (data: PromptInputData): string => {
 
 ## Finansal Projeksiyon ve Yatırım (AI Destekli Bütçe)
 
-ÇOK ÖNEMLİ: Makine öğrenmesi algoritmamızın serbest piyasa verilerini analiz ederek bu proje için belirlediği adil ve nihai piyasa değeri: **$${data.aiEstimatedBudget} USD**'dir. Basit proje istekleri dışında tahmin ettiğin bütçe 300 dolardan çok fazla ise bu veriyi hiç kullanma (Kullanıcı Saatlik Ücreti: $${data.hourlyRate || 'Belirtilmedi'})
+ÇOK ÖNEMLİ KONTROL KURALI: Makine öğrenmesi algoritmamızın bu proje için öngördüğü piyasa değeri **$${data.aiEstimatedBudget} USD**'dir. (Kullanıcı Saatlik Ücreti: $${data.hourlyRate || 'Belirtilmedi'})
+
+Ancak, lütfen bu değeri körü körüne kullanma! Önce "Kapsam ve İş Kalemleri" bölümünde kendi hesapladığın SÜRE KALİBRASYON tablosuna göre toplam eforu (saat) bul. Bu saati kullanıcının saatlik ücreti ($${data.hourlyRate || '0'}) ile çarp. 
+Eğer makine öğrenmesinin verdiği **$${data.aiEstimatedBudget} USD** bütçe, senin hesapladığın bu gerçekçi maliyete göre MANTIKSIZ DERECEDE DÜŞÜK (işin büyüklüğüne göre çok ucuz) veya AŞIRI YÜKSEK kalıyorsa, makine öğrenmesi verisini tamamen görmezden gel! Sadece kendi hesapladığın mantıklı bütçeyi (Saat x Saatlik Ücret) teklife yansıt.
 
 Lütfen bu bölümü yazarken şu adımları izle:
-1. Toplam proje bedelini **$${data.aiEstimatedBudget} USD** olarak belirt.
-2. Müşteriye bu fiyatın neden çok uygun olduğunu, içinde nelerin (örneğin: temiz mimari, testler, 2 tur revizyon, yayınlama) dahil olduğunu profesyonelce açıklayarak değeri (Value for money) kanıtla.
+1. Karar verdiğin nihai toplam proje bedelini (Python tahmini veya kendi hesabın) net olarak belirt.
+2. Müşteriye bu fiyatın neden çok uygun olduğunu, içinde nelerin (temiz mimari, testler, 2 tur revizyon, yayınlama vb.) dahil olduğunu profesyonelce açıklayarak değeri (Value for money) kanıtla.
 3. Tablo KULLANMA. Madde madde listele.
 
 Ardından şu notu olduğu gibi ekle:
