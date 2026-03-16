@@ -76,9 +76,9 @@ export const createProposal = async (req: AuthRequest, res: Response): Promise<v
     
     await newProposal.save();
 
-    // 👇 YENİ: SENKRON İŞLEME
+    // 👇 YENİ: SENKRON İŞLEME (KÖPRÜ BURADA TAMAMLANDI)
     try {
-        await proposalService.generateProposalService(userId, req.body, newProposal._id.toString());
+        await proposalService.generateProposalService(userId, req.body, newProposal._id.toString(), aiEstimatedBudget, aiEstimatedHours);
         
         res.status(200).json({
           message: 'Teklifiniz başarıyla oluşturuldu!',

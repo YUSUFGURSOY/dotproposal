@@ -17,7 +17,7 @@ export interface CreateProposalData {
   selectedSections?: string[];
 }
 
-export const generateProposalService = async (userId: string, data: CreateProposalData, proposalId: string) => {
+export const generateProposalService = async (userId: string, data: CreateProposalData, proposalId: string, aiEstimatedBudget?: number, aiEstimatedHours?: number) => {
   const pdf = require('pdf-parse-fork');
 
   if (!process.env.GOOGLE_API_KEY) {
@@ -85,7 +85,9 @@ export const generateProposalService = async (userId: string, data: CreatePropos
     tone: data.tone,
     selectedFeatures: data.selectedFeatures,
     hourlyRate: data.hourlyRate,
-    selectedSections: data.selectedSections
+    selectedSections: data.selectedSections,
+    aiEstimatedBudget,
+    aiEstimatedHours
   });
 
   // Gemini'ye İstek At
