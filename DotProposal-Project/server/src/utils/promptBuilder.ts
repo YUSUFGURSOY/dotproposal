@@ -252,6 +252,7 @@ ${priceInstruction}
 ─────────────────────────────────
 YAZILIMCIYA STRATEJİK TAVSİYELER (GİZLİ KISIM)
 
+tavsiyeler kısmına özel olarak yazılımcıya hitap ettiğimiz için ismi ile hitap et ve ona tavisye verme dili ile konuş (yapmalısın gibi)
 Bu kısım müşteri tarafından asla görülmeyecek. Sadece yazılımcıya (kullanıcıya) yönelik olacak.
 Lütfen müşterinin talepleri ile yazılımcının CV'sini derinlemesine karşılaştır ve şu 3 konuda YÜZEYSEL OLMAYAN, en az 3-4 cümleden oluşan, analitik ve yol gösterici tavsiyeler üret:
 1. Derinlemesine Risk Analizi: Müşterinin isteği ile yazılımcının CV'si arasındaki "gap" (boşluk) nedir? Hangi teknolojide zorlanabilir? Çözüm önerin nedir?
