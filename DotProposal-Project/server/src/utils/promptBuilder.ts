@@ -151,7 +151,7 @@ export const buildProposalPrompt = (data: PromptInputData): string => {
 
 ## Finansal Projeksiyon ve Yatırım (AI Destekli Bütçe)
 
-ÇOK ÖNEMLİ: Makine öğrenmesi algoritmamızın serbest piyasa verilerini analiz ederek bu proje için belirlediği adil ve nihai piyasa değeri KESİNLİKLE: **$${data.aiEstimatedBudget} USD**'dir. (Kullanıcı Saatlik Ücreti: $${data.hourlyRate || 'Belirtilmedi'})
+ÇOK ÖNEMLİ: Makine öğrenmesi algoritmamızın serbest piyasa verilerini analiz ederek bu proje için belirlediği adil ve nihai piyasa değeri: **$${data.aiEstimatedBudget} USD**'dir. Basit proje istekleri dışında tahmin ettiğin bütçe 300 dolardan çok fazla ise bu veriyi hiç kullanma (Kullanıcı Saatlik Ücreti: $${data.hourlyRate || 'Belirtilmedi'})
 
 Lütfen bu bölümü yazarken şu adımları izle:
 1. Toplam proje bedelini **$${data.aiEstimatedBudget} USD** olarak belirt.
