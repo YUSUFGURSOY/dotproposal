@@ -97,15 +97,21 @@ export const generateProposalService = async (userId: string, data: CreatePropos
   const aiResponse = await result.response;
   const rawText = aiResponse.text();
 
-  if (!rawText) {
+ if (!rawText) {
     throw new Error("Gemini teklif oluşturamadı.");
   }
 
   let aiData;
   try {
-    aiData = JSON.parse(rawText);
+    // 👇 YENİ: Gemini'nin ekleyebileceği gereksiz markdown etiketlerini temizliyoruz
+    let cleanedText = rawText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    
+    // Temizlenmiş metni parse ediyoruz
+    aiData = JSON.parse(cleanedText);
   } catch (error) {
-    console.error("JSON Çeviri Hatası:", error);
+    console.error("❌ JSON Çeviri Hatası:", error);
+    // Hatanın tam nerede olduğunu görmek için ham metni konsola yazdırıyoruz:
+    console.log("👇 GEMININİN BOZUK GÖNDERDİĞİ HAM METİN 👇\n", rawText);
     throw new Error("Yapay zeka uygun formatta cevap veremedi.");
   }
 
