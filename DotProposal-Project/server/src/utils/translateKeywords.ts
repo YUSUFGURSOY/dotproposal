@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // .env dosyasındaki API key'ini kullandığından emin ol
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || '');
 
 export const getEnglishKeywordsForAI = async (userInput: string): Promise<string> => {
     try {
