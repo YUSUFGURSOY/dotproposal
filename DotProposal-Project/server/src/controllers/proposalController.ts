@@ -25,19 +25,20 @@ export const createProposal = async (req: AuthRequest, res: Response): Promise<v
       const combinedText = `${jobTitle || ''} ${jobDescription || ''}`.trim();
       
       // 2. Loga birleştirilmiş metni yazdır ki ne gönderdiğini gör
-      console.log(`\n[AI-RADAR] Python servisine istek atılıyor. Gönderilen Metin: ${combinedText || 'Yok'}`);
+      console.log(`\n[AI-RADAR] Çeviri ve Python servisine istek atılıyor. Gönderilen Metin: ${combinedText || 'Yok'}`);
       
-      // 3. Modeline bu zengin metni yolla
-      const aiResponse = await axios.post('https://dotproposal-ai.onrender.com/predict-budget', {
-        title: combinedText || 'Taslak İş Başlığı'
-      });
+      // 3. YENİ KOD: Doğrudan axios.post yerine, yazdığımız servisi çağırıyoruz.
+      // Bu servis önce Gemini ile çeviri yapacak, sonra Python'a gönderecek.
+      const predictedResponse = await proposalService.getPricePrediction(combinedText);
       
-      console.log("[AI-RADAR] Python'dan dönen ham cevap:", aiResponse.data);
+      // Servis nesne dönüyorsa (success, suggested_budget) veya direkt sayı dönüyorsa yakala
+      const rawBudget = typeof predictedResponse === 'object' && predictedResponse.status === 'success' 
+                        ? predictedResponse.suggested_budget 
+                        : predictedResponse;
 
-      // YENİ: FastAPI'nin döndürdüğü 'status' ve 'suggested_budget' alanlarına göre kontrol
-      if (aiResponse.data.status === 'success') {
+      if (rawBudget) {
         // 🛡️ KALKAN: Gelen veriyi kesinlikle sayıya (Number) çevir
-        aiEstimatedBudget = Number(aiResponse.data.suggested_budget) || 0;
+        aiEstimatedBudget = Number(rawBudget) || 0;
         console.log(`[AI-RADAR] İşlenmiş Bütçe: $${aiEstimatedBudget}`);
 
         // 👇 2. ADIM: SENİN "SİHİRLİ SAAT" ALGORİTMAN (HİBRİD ZEKA)

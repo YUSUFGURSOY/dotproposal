@@ -6,6 +6,8 @@ import axios from 'axios';
 import User from '../models/User';
 import Proposal from '../models/Proposal';
 import { buildProposalPrompt } from '../utils/promptBuilder'; 
+// 👇 YENİ EKLENDİ: Gemini çeviri fonksiyonu import ediliyor
+import { getEnglishKeywordsForAI } from '../utils/translateKeywords';
 
 export interface CreateProposalData {
   jobTitle: string;
@@ -35,7 +37,7 @@ export const generateProposalService = async (userId: string, data: CreatePropos
     throw new Error('Lütfen önce profilinizden bir CV yükleyin.'); 
   }
 
-  // 👇 YENİ EKLENDİ: CLOUDINARY'DEN PDF İNDİRME VE OKUMA MANTIĞI
+  // CLOUDINARY'DEN PDF İNDİRME VE OKUMA MANTIĞI
   let cvText = '';
   try {
     const cvUrl = user.cvFileName; // Artık cvFileName içinde "https://res.cloudinary.com/..." yazıyor
@@ -133,4 +135,26 @@ export const getProposalByIdService = async (proposalId: string, userId: string)
   const proposal = await Proposal.findOne({ _id: proposalId, user: userId });
   if (!proposal) throw new Error('Teklif bulunamadı.');
   return proposal;
+};
+
+// 👇 YENİ EKLENDİ: Fiyat Tahmini ve Çeviri Servisi
+export const getPricePrediction = async (projectDescription: string) => {
+    try {
+        // 1. Türkçe/Karışık metni Gemini ile İngilizce anahtar kelimelere çevir
+        const englishKeywords = await getEnglishKeywordsForAI(projectDescription);
+        console.log("Python'a gönderilen optimize edilmiş kelimeler:", englishKeywords);
+
+        // 2. Python (FastAPI) servisine sadece bu İngilizce kelimeleri gönder
+        // (Eğer Python sunucunu Render'a taşıdıysan buradaki localhost adresini canlı adresinle değiştirmelisin)
+        const pythonResponse = await axios.post('https://dotproposal-ai.onrender.com/predict-budget', {
+            title: englishKeywords 
+        });
+
+        // 3. Tahmin edilen fiyatı geri dön
+        return pythonResponse.data.predicted_price;
+
+    } catch (error) {
+        console.error("Fiyat tahmini alınırken hata:", error);
+        throw error;
+    }
 };
