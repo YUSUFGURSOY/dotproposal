@@ -596,6 +596,9 @@ const WizardPage: React.FC = () => {
           dispatch(setProposalStatus('completed'));
           setAiResult(data.generatedCoverLetter); 
           setInsights(data.aiInsights || []);
+          if (data.aiAnalysis) {
+              dispatch(setAIAnalysis(data.aiAnalysis));
+          }
           dispatch(setLoading(false)); 
           dispatch(nextStep()); 
           dispatch(setProposalId(null)); 
