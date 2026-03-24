@@ -69,8 +69,10 @@ export const createProposal = async (req: AuthRequest, res: Response): Promise<v
       jobDescription: jobDescription || 'Taslak İş Açıklaması',
       generatedCoverLetter: 'Yapay zeka teklifinizi hazırlıyor, lütfen bekleyin...', 
       
-      aiEstimatedBudget: aiEstimatedBudget,
-      aiEstimatedHours: aiEstimatedHours,
+      aiAnalysis: {
+        budget: aiEstimatedBudget,
+        hours: aiEstimatedHours
+      },
       
       createdAt: new Date()
     });
