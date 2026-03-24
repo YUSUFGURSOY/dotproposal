@@ -32,11 +32,12 @@ export const createProposal = async (req: AuthRequest, res: Response): Promise<v
       const predictedResponse = await proposalService.getPricePrediction(combinedText);
       
       // Servis nesne dönüyorsa (success, suggested_budget) veya direkt sayı dönüyorsa yakala
-      const rawBudget = typeof predictedResponse === 'object' && predictedResponse.status === 'success' 
-                        ? predictedResponse.suggested_budget 
-                        : predictedResponse;
-
-      if (rawBudget) {
+   // Python'dan dönen veriyi doğrudan yakalıyoruz
+      if (predictedResponse && typeof predictedResponse === 'object') {
+        
+        // Python'dan gelen "budget" değerini al
+        const rawBudget = predictedResponse.budget || predictedResponse.suggested_budget || 0;
+        
         // 🛡️ KALKAN: Gelen veriyi kesinlikle sayıya (Number) çevir
         aiEstimatedBudget = Number(rawBudget) || 0;
         console.log(`[AI-RADAR] İşlenmiş Bütçe: $${aiEstimatedBudget}`);
