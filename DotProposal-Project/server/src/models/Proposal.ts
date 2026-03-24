@@ -18,6 +18,12 @@ export interface IProposal extends Document {
   hourlyRate?: string;        
   selectedSections: string[]; 
   
+  // 👇 İŞTE EKSİK OLAN HAYATİ ALAN BURASI 👇
+  aiAnalysis?: {
+    budget: number;
+    hours: number;
+  };
+  
   createdAt: Date;
   updatedAt: Date;
   aiInsights: string[];
@@ -72,6 +78,13 @@ const proposalSchema = new Schema<IProposal>({
     type: [String], 
     default: []
   },
+  
+  // 👇 İŞTE EKSİK OLAN HAYATİ ALANIN MONGOOSE ŞEMASI 👇
+  aiAnalysis: {
+    budget: { type: Number, default: 0 },
+    hours: { type: Number, default: 0 }
+  },
+
   isViewed: { 
     type: Boolean, 
     default: false 
