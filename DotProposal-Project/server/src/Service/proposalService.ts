@@ -157,7 +157,7 @@ export const getPricePrediction = async (projectDescription: string) => {
         });
 
         // 3. Tahmin edilen fiyatı geri dön
-        return pythonResponse.data.predicted_price;
+        return pythonResponse.data;
 
     } catch (error) {
         console.error("Fiyat tahmini alınırken hata:", error);
