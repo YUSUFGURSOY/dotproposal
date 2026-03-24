@@ -30,6 +30,8 @@ export const createProposal = async (req: AuthRequest, res: Response): Promise<v
       // 3. YENİ KOD: Doğrudan axios.post yerine, yazdığımız servisi çağırıyoruz.
       // Bu servis önce Gemini ile çeviri yapacak, sonra Python'a gönderecek.
       const predictedResponse = await proposalService.getPricePrediction(combinedText);
+
+      console.log("🚨 PİTONDAN GELEN HAM CEVAP:", predictedResponse);
       
       // Servis nesne dönüyorsa (success, suggested_budget) veya direkt sayı dönüyorsa yakala
    // Python'dan dönen veriyi doğrudan yakalıyoruz
